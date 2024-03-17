@@ -9,12 +9,13 @@ SERVERLESS
   [ ] openAI integration
   [ ] scope of configiration parameters - should be user rather than script.
   [v] model selection? configurable? Depends on the tag?
-  [ ] better prompt. Make context inclusion optional.
+  [v] better prompt. Make context inclusion optional.
   [v] test on android phone
   [v] better tagging/case-insensitive.
   [?] notifications/refresh? - unclear how to achieve
   [?] mark comments as resolved rather than having separate property? -- probably not
     [ ] still need to store these 'semi-resolved' comments in a better way - there's a hard limit on property size.
+  [ ] handle whole conversations
 
 
 SERVER
@@ -27,8 +28,6 @@ OTHER
   * how to sync source to github? (use clasp?)
   * tests?
 */
-
-
 
 // We have a manual way of tracking 'which comments we have already replied to'.
 // Marking comments as resolved is not a perfect semantics + resolved comments
@@ -55,7 +54,7 @@ function saveCompletedComments(comment_ids) {
 }
 
 // returns text of the reply or null in case of error.
-function callClaude(question, context, model_name) {
+function callClaude(question, context, model_name, use_context) {
   var url = "https://api.anthropic.com/v1/messages";
 
   var properties = PropertiesService.getScriptProperties();
@@ -65,7 +64,16 @@ function callClaude(question, context, model_name) {
     return null;
   }
 
-  var prompt = context + "\n\nPlease answer the question using the paragraph above as extra context, if it is relevant to the question.\n" + question;
+  if (use_context && context === undefined) {
+    console.warn('requested prompt with context, but no context was provided');
+    use_context = false;
+  }
+
+  if (use_context) {
+    var prompt = context + "\n\nPlease answer the question using the paragraph above as extra context, if it is relevant to the question.\n" + question;
+  } else {
+    var prompt = question;
+  } 
 
   var headers = {
     "x-api-key": api_key,
@@ -106,16 +114,21 @@ function checkComment(file, comment, completedComments) {
   if (completedComments.has(comment.id)) {
     return;
   }
-  const prefixModelMapping = new Map([
-    ['@ask ', 'claude-3-haiku-20240307'],
-    ['@haiku ', 'claude-3-haiku-20240307'],
-    ['@opus ', 'claude-3-opus-20240229'],
-    ['@sonnet ', 'claude-3-sonnet-20240229']
-  ]);
+
+  const config = [
+    {prefix: '@ask ', model: 'claude-3-haiku-20240307', use_context: false},
+    {prefix: '@haiku ', model: 'claude-3-haiku-20240307', use_context: false},
+    {prefix: '@opus ', model: 'claude-3-opus-20240229', use_context: false},
+    {prefix: '@sonnet ', model: 'claude-3-sonnet-20240229', use_context: false},
+    {prefix: '@ask+ ', model: 'claude-3-haiku-20240307', use_context: true},
+    {prefix: '@haiku+ ', model: 'claude-3-haiku-20240307', use_context: true},
+    {prefix: '@opus+ ', model: 'claude-3-opus-20240229', use_context: true},
+    {prefix: '@sonnet+ ', model: 'claude-3-sonnet-20240229', use_context: true},
+  ];
   
   // check that no prefix is a prefix of another prefix, otherwise config is ambiguous.
   // TODO: do just once per script run
-  const prefixes = [...prefixModelMapping.keys()].sort();
+  const prefixes = config.map(c => c.prefix).sort();
   for (let i = 0; i + 1 < prefixes.length; i++) {
     if (prefixes[i + 1].startsWith(prefixes[i])) {
       console.error('tag -> model configuration is invalid. %s is a prefix of %s.', prefixes[i], prefixes[i + 1]);
@@ -124,19 +137,13 @@ function checkComment(file, comment, completedComments) {
   }
 
   const lowerCasedComment = comment.content.toLowerCase();
-  for (const [prefix, model] of prefixModelMapping.entries()) {
-    if (lowerCasedComment.startsWith(prefix.toLowerCase())) {
-      try {
-        var question = comment.content.substring(prefix.length);
-        // TODO: doesn't seem to work on iPad, quotedFileContent is not set.
-        var context = comment.quotedFileContent.value;
-      } catch (e) {
-        console.error("Unable to extract question and context from the comment");
-        return;
-      }
-      console.info('asking a question in file %s', file.getName());
+  for (const conf of config) {
+    if (lowerCasedComment.startsWith(conf.prefix.toLowerCase())) {
+      const question = comment.content.substring(conf.prefix.length);
+      const context = (comment.quotedFileContent === null || comment.quotedFileContent === undefined) ? undefined : comment.quotedFileContent.value;
 
-      var response = callClaude(question, context, model);
+      console.info('asking a question in file %s', file.getName());
+      var response = callClaude(question, context, conf.model, conf.use_context);
 
       if (response === null) {
         console.error('Error getting the model reply');
