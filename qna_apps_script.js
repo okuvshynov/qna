@@ -2,17 +2,19 @@
 
 SERVERLESS
   [ ] configurable folder structure
-  [ ] notifications/refresh?
   [v] try it on ipad -- looks like there's some bug getting quotedFileContent
    [ ] report the bug
-   [ ] better error handling
+   [v] better error handling
   [ ] estimate the limits
   [ ] openAI integration
-  [v] better tagging/case-insensitive.
-  [ ] mark comments as resolved rather than having separate property?
-  [ ] model selection? configurable? Depends on the tag?
-  [ ] better prompt
+  [ ] scope of configiration parameters - should be user rather than script.
+  [v] model selection? configurable? Depends on the tag?
+  [ ] better prompt. Make context inclusion optional.
   [v] test on android phone
+  [v] better tagging/case-insensitive.
+  [?] notifications/refresh? - unclear how to achieve
+  [?] mark comments as resolved rather than having separate property? -- probably not
+    [ ] still need to store these 'semi-resolved' comments in a better way - there's a hard limit on property size.
 
 
 SERVER
@@ -26,13 +28,35 @@ OTHER
   * tests?
 */
 
-// returns text of the reply or null in case of error.
-function callClaude(question, context) {
-  var url = "https://api.anthropic.com/v1/messages";
+
+
+// We have a manual way of tracking 'which comments we have already replied to'.
+// Marking comments as resolved is not a perfect semantics + resolved comments
+// are hidden by default in pdfs, which is not ideal.
+function getCompletedComments() {
+  var properties = PropertiesService.getScriptProperties();
+  var completedComments = properties.getProperty("COMPLETED_COMMENTS");
+  if (completedComments === null) {
+    console.info("Found 0 completed comments");
+    return new Set();
+  }
   
-  // TODO: make this depend on tag
-  var model_name = "claude-3-haiku-20240307";
-  // var model_name = "claude-3-opus-20240229";
+  var results = completedComments.split(" ");
+  console.info('Found %s completed comments', results.length);
+
+  return new Set(results);
+}
+
+function saveCompletedComments(comment_ids) {
+  var properties = PropertiesService.getScriptProperties();
+  var id_string = Array.from(comment_ids).join(' ');
+  console.info('Updating completed comment ids');
+  properties.setProperty("COMPLETED_COMMENTS", id_string);
+}
+
+// returns text of the reply or null in case of error.
+function callClaude(question, context, model_name) {
+  var url = "https://api.anthropic.com/v1/messages";
 
   var properties = PropertiesService.getScriptProperties();
   var api_key = properties.getProperty("ANTHROPIC_API_KEY");
@@ -41,7 +65,7 @@ function callClaude(question, context) {
     return null;
   }
 
-  var prompt = context + "\n\nPlease answer this question using the paragraph above as context:\n" + question;
+  var prompt = context + "\n\nPlease answer the question using the paragraph above as extra context, if it is relevant to the question.\n" + question;
 
   var headers = {
     "x-api-key": api_key,
@@ -78,17 +102,30 @@ function callClaude(question, context) {
   return reply;
 }
 
-// completedComments is in/out parameter.
-function checkFile(file, completedComments) {
-  var fields = 'comments(id,content,quotedFileContent)';
-  var prefix = "@ask";
-
-  var comments = Drive.Comments.list(file.getId(), {fields: fields});
-  comments.comments.forEach(function(comment) {
-    if (completedComments.has(comment.id)) {
+function checkComment(file, comment, completedComments) {
+  if (completedComments.has(comment.id)) {
+    return;
+  }
+  const prefixModelMapping = new Map([
+    ['@ask ', 'claude-3-haiku-20240307'],
+    ['@haiku ', 'claude-3-haiku-20240307'],
+    ['@opus ', 'claude-3-opus-20240229'],
+    ['@sonnet ', 'claude-3-sonnet-20240229']
+  ]);
+  
+  // check that no prefix is a prefix of another prefix, otherwise config is ambiguous.
+  // TODO: do just once per script run
+  const prefixes = [...prefixModelMapping.keys()].sort();
+  for (let i = 0; i + 1 < prefixes.length; i++) {
+    if (prefixes[i + 1].startsWith(prefixes[i])) {
+      console.error('tag -> model configuration is invalid. %s is a prefix of %s.', prefixes[i], prefixes[i + 1]);
       return;
     }
-    if (comment.content.toLowerCase().startsWith(prefix)) {
+  }
+
+  const lowerCasedComment = comment.content.toLowerCase();
+  for (const [prefix, model] of prefixModelMapping.entries()) {
+    if (lowerCasedComment.startsWith(prefix.toLowerCase())) {
       try {
         var question = comment.content.substring(prefix.length);
         // TODO: doesn't seem to work on iPad, quotedFileContent is not set.
@@ -99,7 +136,7 @@ function checkFile(file, completedComments) {
       }
       console.info('asking a question in file %s', file.getName());
 
-      var response = callClaude(question, context);
+      var response = callClaude(question, context, model);
 
       if (response === null) {
         console.error('Error getting the model reply');
@@ -112,33 +149,16 @@ function checkFile(file, completedComments) {
       console.info('replying to comment %s', comment.content);
       completedComments.add(comment.id);
     }
-  });
-}
-
-
-// We have a manual way of tracking 'which comments we replied to'.
-// Marking comments as resolved is not a perfect semantics + resolved comments
-// are hidden by default in pdfs, which is not ideal.
-function getCompletedComments() {
-  var properties = PropertiesService.getScriptProperties();
-  var completedComments = properties.getProperty("COMPLETED_COMMENTS");
-  if (completedComments === null) {
-    console.info("Found 0 completed comments");
-    return new Set();
   }
-  
-  var results = completedComments.split(" ");
-  console.info('Found %s completed comments', results.length);
-
-  return new Set(results);
 }
 
-function saveCompletedComments(comment_ids) {
-  var properties = PropertiesService.getScriptProperties();
-  var id_string = Array.from(comment_ids).join(' ');
-  console.info('Updating completed comment ids');
-  properties.setProperty("COMPLETED_COMMENTS", id_string);
+// completedComments is in/out parameter.
+function checkFile(file, completedComments) {
+  var fields = 'comments(id,content,quotedFileContent)';
+  var comments = Drive.Comments.list(file.getId(), {fields: fields});
+  comments.comments.forEach(comment => checkComment(file, comment, completedComments));
 }
+
 
 function checkAll() {
   // TODO: this must be unique name? Configurable?
