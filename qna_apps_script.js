@@ -1,18 +1,18 @@
 /*
 
 SERVERLESS
-  [ ] correct folder structure
+  [ ] configurable folder structure
   [ ] notifications/refresh?
-  [+] try it on ipad -- looks like there's some bug getting quotedFileContent
+  [v] try it on ipad -- looks like there's some bug getting quotedFileContent
    [ ] report the bug
    [ ] better error handling
   [ ] estimate the limits
   [ ] openAI integration
-  [ ] better tagging/case-insensitive.
+  [v] better tagging/case-insensitive.
   [ ] mark comments as resolved rather than having separate property?
   [ ] model selection? configurable? Depends on the tag?
   [ ] better prompt
-  [ ] test on android phone
+  [v] test on android phone
 
 
 SERVER
@@ -22,7 +22,7 @@ SERVER
   * local model vs remote model called by proxy
 
 OTHER
-  * how to sync source to github?
+  * how to sync source to github? (use clasp?)
   * tests?
 */
 
@@ -34,7 +34,6 @@ function callClaude(question, context) {
   var model_name = "claude-3-haiku-20240307";
   // var model_name = "claude-3-opus-20240229";
 
-
   var properties = PropertiesService.getScriptProperties();
   var api_key = properties.getProperty("ANTHROPIC_API_KEY");
   if (api_key === undefined || api_key === null) {
@@ -42,7 +41,7 @@ function callClaude(question, context) {
     return null;
   }
 
-  var prompt = context + "\n\nPlease answer this question using above paragraph as context:\n" + question;
+  var prompt = context + "\n\nPlease answer this question using the paragraph above as context:\n" + question;
 
   var headers = {
     "x-api-key": api_key,
@@ -82,14 +81,14 @@ function callClaude(question, context) {
 // completedComments is in/out parameter.
 function checkDoc(doc_id, completedComments) {
   var fields = 'comments(id,content,quotedFileContent)';
-  var prefix = "@QNA";
+  var prefix = "@ask";
 
   var comments = Drive.Comments.list(doc_id, {fields: fields});
   comments.comments.forEach(function(comment) {
     if (completedComments.has(comment.id)) {
       return;
     }
-    if (comment.content.startsWith(prefix)) {
+    if (comment.content.toLowerCase().startsWith(prefix)) {
       try {
         var question = comment.content.substring(prefix.length);
         // TODO: doesn't seem to work on iPad, quotedFileContent is not set.
