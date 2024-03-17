@@ -1,25 +1,46 @@
 /*
-  TODO: 
-  * how to make sure we never timeout? Have a two pass evaluation, where when reply 'arrives' somewhere, we can pick it up later by comment id. Needs local server.
-  * making http requests: https://stackoverflow.com/questions/14742350/google-apps-script-make-http-post
-    https://developers.google.com/apps-script/reference/url-fetch
-  * correct folder structure
-  * using properties to setup the API
-  * ngrok https://ngrok.com/blog-post/introducing-ngrok-api-gateway
-  * local server
-  * how to store source on github? 
-  * how to provide entire file as context?
-  * how to get faster response time?
-  * in a way, we can have two versions:
-  - serverless - we just call API (say, claude or open ai).
 
+SERVERLESS
+  [ ] correct folder structure
+  [ ] notifications/refresh?
+  [+] try it on ipad -- looks like there's some bug getting quotedFileContent
+   [ ] report the bug
+   [ ] better error handling
+  [ ] estimate the limits
+  [ ] openAI integration
+  [ ] better tagging/case-insensitive.
+  [ ] mark comments as resolved rather than having separate property?
+  [ ] model selection? configurable? Depends on the tag?
+  [ ] better prompt
+  [ ] test on android phone
+
+
+SERVER
+  * how to make sure we never timeout? Have a two-pass evaluation, where when reply 'arrives' somewhere, we can pick it up later by comment id.
+  * use ngrok https://ngrok.com/blog-post/introducing-ngrok-api-gateway
+  * how to provide entire file as context?
+  * local model vs remote model called by proxy
+
+OTHER
+  * how to sync source to github?
+  * tests?
 */
 
+// returns text of the reply or null in case of error.
 function callClaude(question, context) {
   var url = "https://api.anthropic.com/v1/messages";
+  
+  // TODO: make this depend on tag
   var model_name = "claude-3-haiku-20240307";
+  // var model_name = "claude-3-opus-20240229";
+
+
   var properties = PropertiesService.getScriptProperties();
   var api_key = properties.getProperty("ANTHROPIC_API_KEY");
+  if (api_key === undefined || api_key === null) {
+    console.error("No ANTHROPIC_API_KEY found in script properties.");
+    return null;
+  }
 
   var prompt = context + "\n\nPlease answer this question using above paragraph as context:\n" + question;
 
@@ -45,14 +66,20 @@ function callClaude(question, context) {
     'muteHttpExceptions': true
   };
 
-  Logger.log('querying anthropic API');
-  var response = UrlFetchApp.fetch(url, options);
-  var jsonResponse = JSON.parse(response.getContentText());
-  Logger.log(jsonResponse);
+  console.info('querying anthropic model %s', model_name);
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var jsonResponse = JSON.parse(response.getContentText());
+    var reply = jsonResponse.content[0].text;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 
-  return jsonResponse.content[0].text
+  return reply;
 }
 
+// completedComments is in/out parameter.
 function checkDoc(doc_id, completedComments) {
   var fields = 'comments(id,content,quotedFileContent)';
   var prefix = "@QNA";
@@ -60,32 +87,44 @@ function checkDoc(doc_id, completedComments) {
   var comments = Drive.Comments.list(doc_id, {fields: fields});
   comments.comments.forEach(function(comment) {
     if (completedComments.has(comment.id)) {
-      Logger.log('skipping comment ' + comment.id);
       return;
     }
     if (comment.content.startsWith(prefix)) {
-      var question = comment.content.substring(prefix.length);
-      var context = comment.quotedFileContent.value;
+      try {
+        var question = comment.content.substring(prefix.length);
+        // TODO: doesn't seem to work on iPad, quotedFileContent is not set.
+        var context = comment.quotedFileContent.value;
+      } catch (e) {
+        console.error("Unable to extract question and context from the comment");
+        return;
+      }
+
       var response = callClaude(question, context);
+
+      if (response === null) {
+        console.error('Error getting the model reply');
+        return;
+      }
 
       var reply = Drive.Replies.create({
         content: response,
       }, doc_id, comment.id, {fields: 'id'});
-      Logger.log('replying to comment ' + comment.content);
+      console.info('replying to comment %s', comment.content);
       completedComments.add(comment.id);
     }
   });
-  Logger.log(completedComments);
 }
 
 function getCompletedComments() {
   var properties = PropertiesService.getScriptProperties();
   var completedComments = properties.getProperty("COMPLETED_COMMENTS");
   if (completedComments === null) {
-    completedComments = "";
+    console.info("Found 0 completed comments");
+    return new Set();
   }
-  Logger.log('Completed comment ids: ' + completedComments);
+  
   var results = completedComments.split(" ");
+  console.info('Found %s completed comments', results.length);
 
   return new Set(results);
 }
@@ -93,23 +132,27 @@ function getCompletedComments() {
 function saveCompletedComments(comment_ids) {
   var properties = PropertiesService.getScriptProperties();
   var id_string = Array.from(comment_ids).join(' ');
-  Logger.log('Updating completed comment ids: ' + id_string);
+  console.info('Updating completed comment ids');
   properties.setProperty("COMPLETED_COMMENTS", id_string);
 }
 
-function listDocuments() {
+function checkAllPdfs() {
+  // TODO: this must be unique name? Configurable?
   var folderName = "books";
-  var folder = DriveApp.getFoldersByName(folderName).next();
+  console.info("Looking for pdf files in folder %s", folderName);
+
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (!folders.hasNext()) {
+    console.error("Configured folder name %s not found.", folderName);
+    return;
+  }
+  var folder = folders.next();
   var files = folder.getFilesByType(MimeType.PDF);
 
   var completedComments = getCompletedComments();
 
   while (files.hasNext()) {
     var file = files.next();
-    Logger.log({
-      id: file.getId(),
-      name: file.getName()
-    });
     checkDoc(file.getId(), completedComments);
   }
 
