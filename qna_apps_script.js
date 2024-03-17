@@ -79,11 +79,11 @@ function callClaude(question, context) {
 }
 
 // completedComments is in/out parameter.
-function checkDoc(doc_id, completedComments) {
+function checkFile(file, completedComments) {
   var fields = 'comments(id,content,quotedFileContent)';
   var prefix = "@ask";
 
-  var comments = Drive.Comments.list(doc_id, {fields: fields});
+  var comments = Drive.Comments.list(file.getId(), {fields: fields});
   comments.comments.forEach(function(comment) {
     if (completedComments.has(comment.id)) {
       return;
@@ -97,6 +97,7 @@ function checkDoc(doc_id, completedComments) {
         console.error("Unable to extract question and context from the comment");
         return;
       }
+      console.info('asking a question in file %s', file.getName());
 
       var response = callClaude(question, context);
 
@@ -107,13 +108,17 @@ function checkDoc(doc_id, completedComments) {
 
       var reply = Drive.Replies.create({
         content: response,
-      }, doc_id, comment.id, {fields: 'id'});
+      }, file.getId(), comment.id, {fields: 'id'});
       console.info('replying to comment %s', comment.content);
       completedComments.add(comment.id);
     }
   });
 }
 
+
+// We have a manual way of tracking 'which comments we replied to'.
+// Marking comments as resolved is not a perfect semantics + resolved comments
+// are hidden by default in pdfs, which is not ideal.
 function getCompletedComments() {
   var properties = PropertiesService.getScriptProperties();
   var completedComments = properties.getProperty("COMPLETED_COMMENTS");
@@ -135,7 +140,7 @@ function saveCompletedComments(comment_ids) {
   properties.setProperty("COMPLETED_COMMENTS", id_string);
 }
 
-function checkAllPdfs() {
+function checkAll() {
   // TODO: this must be unique name? Configurable?
   var folderName = "books";
   console.info("Looking for pdf files in folder %s", folderName);
@@ -152,7 +157,7 @@ function checkAllPdfs() {
 
   while (files.hasNext()) {
     var file = files.next();
-    checkDoc(file.getId(), completedComments);
+    checkFile(file, completedComments);
   }
 
   saveCompletedComments(completedComments);
