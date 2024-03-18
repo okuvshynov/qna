@@ -112,11 +112,8 @@ function callClaude(question, context, model_name, use_context) {
   return reply;
 }
 
-function checkComment(file, comment, completedComments) {
-  if (completedComments.has(comment.id)) {
-    return;
-  }
 
+function prepareTagConfig() {
   const config = [
     {prefix: '@ask ', model: 'claude-3-haiku-20240307', use_context: false},
     {prefix: '@haiku ', model: 'claude-3-haiku-20240307', use_context: false},
@@ -134,9 +131,18 @@ function checkComment(file, comment, completedComments) {
   for (let i = 0; i + 1 < prefixes.length; i++) {
     if (prefixes[i + 1].startsWith(prefixes[i])) {
       console.error('tag -> model configuration is invalid. %s is a prefix of %s.', prefixes[i], prefixes[i + 1]);
-      return;
+      return [];
     }
   }
+  return config;
+}
+
+function checkComment(file, comment, completedComments) {
+  if (completedComments.has(comment.id)) {
+    return;
+  }
+
+  const config = prepareTagConfig();
 
   const lowerCasedComment = comment.content.toLowerCase();
   for (const conf of config) {
@@ -191,14 +197,188 @@ function checkAll() {
   saveCompletedComments(completedComments);
 }
 
+///////////////////////////////
 // experiments below
-function listReplies() {
-  const commentId = "AAABJX1fBo8";
-  const fileId = "1GuvC1sneSxkR8yyj3r8J-NJHPQbcL4eR";
+
+function squashUserCommentsForClaude(messages) {
+  let res = [];
+  messages.map(m => ({role: m.role, content: m.content})).forEach(m => {
+    if (res.length > 0 && res[res.length - 1].role == m.role) {
+      res[res.length - 1].content += '\n' + m.content;
+    } else {
+      res.push(m);
+    }
+  });
+  return res;
+}
+
+function callClaude2(messages, model_name) {
+  var url = "https://api.anthropic.com/v1/messages";
+
+  var properties = PropertiesService.getScriptProperties();
+  var api_key = properties.getProperty("ANTHROPIC_API_KEY");
+  if (api_key === undefined || api_key === null) {
+    console.error("No ANTHROPIC_API_KEY found in script properties.");
+    return null;
+  }
+
+  var headers = {
+    "x-api-key": api_key,
+    "anthropic-version": "2023-06-01",
+    "content-type": "application/json"
+  };
+
+  var payload = {
+    "model": model_name,
+    "max_tokens": 1024,
+    "messages": messages.map(m => ({role: m.role, content: m.content}))
+  };
+
+  var options = {
+    'method' : 'post',
+    'contentType': 'application/json',
+    'payload' : JSON.stringify(payload),
+    'headers': headers,
+    'muteHttpExceptions': true
+  };
+
+  console.info('querying anthropic model %s', model_name);
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    //console.log(response);
+    var jsonResponse = JSON.parse(response.getContentText());
+    //console.log(jsonResponse);
+    if (jsonResponse.type == 'error') {
+      console.error(jsonResponse);
+      return null;
+    }
+    var reply = jsonResponse.content[0].text;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+
+  return reply;
+}
+
+// matches re:id at the end.
+function isAssistantReply(str) {
+  const pattern = /re:([a-zA-Z0-9]+)$/;
+  const match = str.match(pattern);
+
+  if (match) {
+      return match[1]; // This returns the ID part of the match
+  } else {
+      return null; // Return null if no match is found
+  }
+}
+
+function processComment(file, comment) {
+  const commentId = comment.id;
+  const fileId = file.getId();
   let replies = Drive.Replies.list(fileId, commentId, {fields: 'replies(id,content)'});
   // https://docs.anthropic.com/claude/reference/messages_post
   // we need to convert the message history here to the format API would understand.
   console.log(replies);
+
+  //var fields = 'id,content,quotedFileContent';
+  //var comment = Drive.Comments.get(fileId, commentId, {fields: fields});
+
+  /*
+
+  {"role": "user", "content": "Hello there."},
+  {"role": "assistant", "content": "Hi, I'm Claude. How can I help you?"},
+  {"role": "user", "content": "Can you explain LLMs in plain English?"},
+
+  */
+
+  let messages = replies.replies.map(r => {
+    const maybeReplyTo = isAssistantReply(r.content);
+    if (maybeReplyTo === null) {
+      // this is user comment.
+      return {"role": "user", "content": r.content, "id": r.id};
+    }
+    return {"role": "assistant", "content": r.content, "id": r.id, "reply_to": maybeReplyTo};
+  });
+
+  messages = [{"role": "user", "content": comment.content, "id": comment.id}, ...messages];
+
+  //console.log(messages);
+
+  // now we need to check if any user comment requests assistance. We take latest instruction as a model we'll use. 
+  const config = prepareTagConfig();
+  const configToUse = messages
+    .filter(m => m.role == "user")
+    .map(m => { // does some modification in place.
+      const matchingConf = config
+        .map(conf => m.content.toLowerCase().startsWith(conf.prefix.toLowerCase()) ? conf : null)
+        .filter(conf => conf)
+        .pop();
+      if (matchingConf !== undefined) {
+        m.content = m.content.substring(matchingConf.prefix.length);
+      }
+      return matchingConf;
+    })
+    .filter(conf => conf)
+    .pop();
+
+  //console.log(configToUse);
+  //console.log(messages);
+
+
+  if (configToUse === undefined) {
+    // no assistant requests in the thread
+    return;
+  }
+
+  const maxRepliedId = messages
+    .filter(m => m.reply_to)
+    .reduce((replied_id, m) => (m.reply_to > replied_id ? m.reply_to : replied_id), '');
+
+  const lastUserCommentId = messages
+    .filter(m => m.role == "user")
+    .map(m => m.id)
+    .pop();
+
+  if (lastUserCommentId <= maxRepliedId) {
+    // replied to everything
+    return;
+  }
+
+  const context = (comment.quotedFileContent === null || comment.quotedFileContent === undefined) ? undefined : comment.quotedFileContent.value;
+  if (configToUse.use_context && context === undefined) {
+    console.warn('requested prompt with context, but no context was provided');
+    configToUse.use_context = false;
+  }
+
+  if (configToUse.use_context) {
+    messages[0].content = context + "\n\nPlease answer the question using the paragraph above as extra context, if it is relevant to the question.\n" + messages[0].content;
+  }
+  
+  console.log(messages);
+
+  const squashed = squashUserCommentsForClaude(messages);
+  console.log(squashed);
+
+  //console.info('asking a question in file %s', file.getName());
+  let response = callClaude2(squashed, configToUse.model);
+
+  if (response === null) {
+    console.error('Error getting the model reply');
+    return;
+  }
+
+  // adding a signature to the reply:
+  response = response + "\nre:" + lastUserCommentId;
+
+  console.log(response);
+
+  console.info('replying to comment %s', comment.content);
+  var reply = Drive.Replies.create({
+    content: response,
+  }, file.getId(), comment.id, {fields: 'id'});
+
+
 
   // we need to identify which comments were made by bot, and which by human?
   // we can expect some formatting: 
@@ -209,4 +389,39 @@ function listReplies() {
   // 'who commented last', we might miss those extra comments and not reply to them. So, we need to somehow encode 
   // the last comment id/index we are replying to. If there are more non-bot comments after the one we reply to, 
   // we should get the conversation and call agent again.
+
+  /*
+    We need to be able to parse 'whose message is it.' Let's check what metadata does reply have.
+    One option is to store 'how many user messages above was there before the reply?'
+    Another option is to rely on id increasing.
+
+    re[<ID>]:
+
+    Or we can just store them in properties for a document. Something like 're[doc_id.reply_id]' => comment_id. 
+    Shall we rely on ordering and check 'if there's user comment with ID > max replied to'. 
+    No document properties for pdfs?
+    Just write them to the reply itself. Something like re:[max_comment_id]
+
+  */
+}
+
+function processFiles() {
+  // TODO: this must be unique name? Configurable?
+  var folderName = "books";
+  console.info("Looking for pdf files in folder %s", folderName);
+
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (!folders.hasNext()) {
+    console.error("Configured folder name %s not found.", folderName);
+    return;
+  }
+  var folder = folders.next();
+  var files = folder.getFilesByType(MimeType.PDF);
+
+  const fields = 'comments(id,content,quotedFileContent)';
+  while (files.hasNext()) {
+    var file = files.next();
+    var comments = Drive.Comments.list(file.getId(), {fields: fields});
+    comments.comments.forEach(comment => processComment(file, comment));
+  }
 }
