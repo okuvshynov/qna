@@ -5,6 +5,7 @@ SERVERLESS
   [v] try it on ipad -- looks like there's some bug getting quotedFileContent
    [ ] report the bug
    [v] better error handling
+   [v] we can still use it without context.
   [ ] estimate the limits
   [ ] openAI integration
   [ ] scope of configiration parameters - should be user rather than script.
@@ -13,16 +14,17 @@ SERVERLESS
   [v] test on android phone
   [v] better tagging/case-insensitive.
   [?] notifications/refresh? - unclear how to achieve
-  [?] mark comments as resolved rather than having separate property? -- probably not
+  [?] mark comments as resolved rather than having separate property? -- probably not.
     [ ] still need to store these 'semi-resolved' comments in a better way - there's a hard limit on property size.
-  [ ] handle whole conversations
+    [ ] Simple heuristic: if last comment was made by our bot, that's 'resolved'? How do we know if it was? Make it with prefix 'botname> ' 
+  [ ] handle whole conversations. Need to transfrom all replies to a conversation like https://docs.anthropic.com/claude/reference/messages_post
+  [ ] provide entire file as context?
 
 
 SERVER
-  * how to make sure we never timeout? Have a two-pass evaluation, where when reply 'arrives' somewhere, we can pick it up later by comment id.
-  * use ngrok https://ngrok.com/blog-post/introducing-ngrok-api-gateway
-  * how to provide entire file as context?
-  * local model vs remote model called by proxy
+  [ ] how to make sure we never timeout? Have a two-pass evaluation, where when reply 'arrives' somewhere, we can pick it up later by comment id.
+  [ ] use ngrok https://ngrok.com/blog-post/introducing-ngrok-api-gateway
+  [ ] local model vs remote model called by proxy
 
 OTHER
   * how to sync source to github? (use clasp?)
@@ -166,7 +168,6 @@ function checkFile(file, completedComments) {
   comments.comments.forEach(comment => checkComment(file, comment, completedComments));
 }
 
-
 function checkAll() {
   // TODO: this must be unique name? Configurable?
   var folderName = "books";
@@ -188,4 +189,24 @@ function checkAll() {
   }
 
   saveCompletedComments(completedComments);
+}
+
+// experiments below
+function listReplies() {
+  const commentId = "AAABJX1fBo8";
+  const fileId = "1GuvC1sneSxkR8yyj3r8J-NJHPQbcL4eR";
+  let replies = Drive.Replies.list(fileId, commentId, {fields: 'replies(id,content)'});
+  // https://docs.anthropic.com/claude/reference/messages_post
+  // we need to convert the message history here to the format API would understand.
+  console.log(replies);
+
+  // we need to identify which comments were made by bot, and which by human?
+  // we can expect some formatting: 
+  // [re:4] bot: ....
+  // 4 in this example would be index of the comment reply we saw last? Are comment ids strictly increasing? 
+  // the important thing here is to handle race conditions/comment deletion. For example, bot read n comments/replies
+  // called remote API and while waiting for the response more replies were created in that thread. If we just look at
+  // 'who commented last', we might miss those extra comments and not reply to them. So, we need to somehow encode 
+  // the last comment id/index we are replying to. If there are more non-bot comments after the one we reply to, 
+  // we should get the conversation and call agent again.
 }
