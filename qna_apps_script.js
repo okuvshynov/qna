@@ -19,6 +19,11 @@ SERVERLESS
     [v] Simple heuristic: if last comment was made by our bot, that's 'resolved'? How do we know if it was? Make it with prefix 'botname> ' 
   [v] handle whole conversations. Need to transfrom all replies to a conversation like https://docs.anthropic.com/claude/reference/messages_post
   [ ] provide entire file as context?
+  [v] test manual comment from two devices.
+  [ ] figure out permissions? 
+  [ ] How to organize? Create separate google account for your bot. Share the document you want with that account from your personal account. 
+      Now we should be able to distinguish comments simply by looking at account. Note that comment/reply thread is arbitrary, while assistant like 
+      claude expects a more structured messages stream - user and assistant are supposed to alternate.
 
 
 SERVER
@@ -256,3 +261,49 @@ function processFiles() {
     comments.comments.forEach(comment => processComment(file, comment));
   }
 }
+
+
+// test open ai
+
+function callChatGPT() {
+  const model_name = "gpt-3.5-turbo";
+
+  const url = "https://api.openai.com/v1/chat/completions";
+
+  const properties = PropertiesService.getScriptProperties();
+  const api_key = properties.getProperty("OPENAI_API_KEY");
+  if (api_key === undefined || api_key === null) {
+    console.error("No OPENAI_API_KEY found in script properties.");
+    return null;
+  }
+
+  const headers = {
+    "Authorization": "Bearer " + api_key,
+    "Content-Type": "application/json"
+  };
+
+  const payload = {
+    "model": model_name,
+    "messages": [{"role": "user", "content": "Say this is a test!"}]
+  };
+
+  const options = {
+    'method' : 'post',
+    'contentType': 'application/json',
+    'payload' : JSON.stringify(payload),
+    'headers': headers,
+    'muteHttpExceptions': true
+  };
+
+  console.info('querying OpenAI model %s', model_name);
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const jsonResponse = JSON.parse(response.getContentText());
+    console.log(jsonResponse.choices[0].message.content);
+    return jsonResponse.choices[0].message.content;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }  
+}
+
