@@ -13,12 +13,11 @@ class Assistant:
         self.work_queue = queue.Queue()
         self.done_queue = queue.Queue()
         self.dir = working_dir
-        self.tick_period = 0.5     # seconds
-        self.debounce_delay = 1.0  # seconds
+        self.tick_period = 0.5
+        self.debounce_delay = 1.0
         self.stats_print_period = 10.0 
 
     def start(self):
-        # start fs monitor loop:
         threading.Thread(target=self.filemonitor, daemon=True).start()
 
         while True:
@@ -32,7 +31,6 @@ class Assistant:
             
             # this is just queue housekeeping, if the task failed (see above) we'll enqueue file again
             self.work_queue.task_done()
-
 
     def filemonitor(self):
         last_update_time_processed = {}
@@ -63,8 +61,6 @@ class Assistant:
                         file_path = os.path.join(root, file)
                         last_processed_time = last_update_time_processed.get(file_path, 0)
                         last_update_time = os.stat(file_path).st_mtime_ns
-                        
-                        # it is just for debounce, ok if not too precise
                         debounce_cutoff = int(1e9 * (time.time() - self.debounce_delay)) 
 
                         if last_processed_time < last_update_time and not file_path in enqueued:
@@ -84,8 +80,6 @@ class Assistant:
                 last_stats_log = now
 
             time.sleep(self.tick_period)
-
-
 
 if __name__ == "__main__":
     path = "samples"

@@ -1,4 +1,5 @@
 import anthropic
+import openai
 import fitz
 import logging
 from dataclasses import dataclass
@@ -19,6 +20,8 @@ assistant_config = [
     AssistantConfig("@haiku ", "claude-3-haiku-20240307", use_context=False, assistant='claude'),
     AssistantConfig("@opus ", "claude-3-opus-20240229", use_context=False, assistant='claude'),
     AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", use_context=False, assistant='claude'),
+    AssistantConfig("@gpt35 ", "gpt-3.5-turbo", use_context=False, assistant='openai'),
+
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
@@ -38,7 +41,6 @@ def find_conf(message):
 ###############################################################################
 ### CLAUDE
 ###############################################################################
-
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
     message = anthropic.Anthropic().messages.create(
@@ -52,8 +54,29 @@ def ask_claude(config: AssistantConfig, question):
         return message.content[0].text
     return None
 
+
+###############################################################################
+### OpenAI
+###############################################################################
+def ask_openai(config: AssistantConfig, question):
+    logging.info(f'querying open ai model {config.model}')
+    client = openai.Client()
+    message = client.chat.completions.create(
+        model=config.model,
+        max_tokens=1024,
+        messages=[
+            {"role": "user", "content": question[len(config.prefix):]}
+        ]
+    )
+    if message.choices:
+        print(message.choices[0].message)
+        return message.choices[0].message.content
+    return None
+
+
 assistants = {
     "claude": ask_claude,
+    "openai": ask_openai,
 }
 
 ###############################################################################
