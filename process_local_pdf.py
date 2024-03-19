@@ -7,8 +7,6 @@ from dataclasses import dataclass
 ### CONFIG
 ###############################################################################
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-
 @dataclass
 class AssistantConfig:
     prefix: str
@@ -63,10 +61,11 @@ assistants = {
 ###############################################################################
 def process_pdf(path):
     doc = fitz.open(path)
+    has_failures = False
 
     # we use this as a marker that question was answered.
     # if someone modifies the annotation later and the marker is 
-    # deleted, we might consider this a valid question again
+    # deleted, we will consider this a valid question again and process it again
     delimiter = chr(1)
     
     changed = False
@@ -97,11 +96,13 @@ def process_pdf(path):
 
             if assistant is None:
                 logging.error(f'No assistant found for endpoint {conf.assistant}')
+                has_failures = True
                 continue
 
             reply = assistant(conf, content)
             if reply is None:
                 logging.error('Got no reply from assistant')
+                has_failures = True
                 continue
 
             content = content + "\n\n" + reply + delimiter
@@ -109,9 +110,12 @@ def process_pdf(path):
             annot.update()
             changed = True
 
+    # save file only if we added a reply
     if changed:
         doc.save(path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
     doc.close()
+
+    return not has_failures
 
 if __name__ == "__main__":
     pdf_path = 'samples/sample.pdf'
