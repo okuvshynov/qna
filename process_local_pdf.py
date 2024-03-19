@@ -21,7 +21,6 @@ assistant_config = [
     AssistantConfig("@opus ", "claude-3-opus-20240229", use_context=False, assistant='claude'),
     AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", use_context=False, assistant='claude'),
     AssistantConfig("@gpt35 ", "gpt-3.5-turbo", use_context=False, assistant='openai'),
-
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
@@ -39,7 +38,7 @@ def find_conf(message):
     return confs[0] if confs else None
 
 ###############################################################################
-### CLAUDE
+### Anthropic
 ###############################################################################
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
