@@ -160,7 +160,7 @@ def process_pdf(path):
             if conf.use_context:
                 question = fullprompt(fulltext, selection, question)
 
-            reply = assistant(conf, content)
+            reply = assistant(conf, question)
             if reply is None:
                 logging.error('Got no reply from assistant')
                 has_failures = True
