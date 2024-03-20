@@ -2,7 +2,8 @@ import time
 import os
 import queue
 import threading
-import logging 
+import logging
+import sys
 
 from process_local_pdf import process_pdf
 
@@ -82,6 +83,5 @@ class Assistant:
             time.sleep(self.tick_period)
 
 if __name__ == "__main__":
-    path = "samples"
-    a = Assistant(path)
+    a = Assistant(sys.argv[1])
     a.start()
