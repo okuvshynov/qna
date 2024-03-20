@@ -45,6 +45,14 @@ tell application "Preview"
 end tell
 ```
 
+### Refreshing document in Acrobat Reader
+
+```
+osascript -e 'quit app "Adobe Acrobat Reader"'
+open -a /Applications/Adobe\ Acrobat\ Reader.app binaryconnect.pdf
+```
+
+
 Now the typical workflow looks like this:
 1. Highlight a relevant section of text
 2. Add note to the highlight, for example "@sonnet+ why is "
