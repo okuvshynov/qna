@@ -1,8 +1,8 @@
 # qna
 
-TL;DR - AI pretends to be paper/textbook author, you can ask it questions about the paper as a whole, specifc parts of it right in the pdf viewing app (e.g. Apple Preview) using annotations/comments.
+TL;DR - AI pretends to be paper/textbook author, you can ask it questions about the paper as a whole, specifc parts of it right in the pdf viewing app (e.g. Apple Preview) using annotations.
 
-The goal here is to improve on a process of reading a somewhat complicated text, like a scientific paper or a textbook. Rather than summarization, we care about reader's understanding of all the details. The vision was to allow to 'chat with paper author', who'd probably be able to explain both the paper itself and some relevant context. From the product point of view, questions and answers should also live right there where the document is, and not in a separate chat window, so they are implemented as PDF annotations.
+The goal here is to improve on a process of reading a somewhat complicated text, a scientific paper or a textbook. Rather than summarization, we care about reader's understanding of all the details. The idea was to allow to 'chat with paper author', who'd probably be able to explain both the paper itself and some relevant context. From the product point of view, questions and answers should also live right there where the document is, and not in a separate chat window, so they are implemented as PDF annotations.
 
 We look for an ability to ask some questions and get answers about specific pieces of the text. Sometimes that might involve including some context from the paper, and sometimes it would be very generic questions about something reader is not familiar with and paper content would not even be that relevant.
 
@@ -14,7 +14,14 @@ Currently uses Claude API, but adding OpenAI and local llamas should be possible
 
 TBD
 
-## limitations
+## How it works
+
+???
+
+## limitations/workarounds
+
+1. At the moment, we don't have 'discussions' which retain context, but just pairs of question/answer.
+2. I tested it with Apple Preview, and while typical pdf annotations are used, different pdf viewers/collaboration tools might have varying levels of support.
 
 ### old pdfs
 
@@ -44,8 +51,9 @@ end tell
 	[x] entire document
 [x] openAI integration
 [x] better prompt
-[ ] pip install/start/restart service
+[ ] pip install
 [ ] instructions on how to use
+[ ] check other pdf viewers on desktops/iPad/phones. How do they handle annotations?
 [ ] configuration
 [ ] try on some old pdfs
 [ ] monitoring remote files?

@@ -5,7 +5,7 @@ import threading
 import logging
 import sys
 
-from process_local_pdf import process_pdf
+from process_pdf import process_pdf
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
@@ -83,5 +83,6 @@ class Assistant:
             time.sleep(self.tick_period)
 
 if __name__ == "__main__":
-    a = Assistant(sys.argv[1])
-    a.start()
+    if len(sys.argv) != 2:
+        logging.error(f'usage: qna.py path/to/folder/to/monitor/')
+    Assistant(sys.argv[1]).start()
