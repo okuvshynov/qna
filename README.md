@@ -11,4 +11,4 @@
 [ ] configuration
 [ ] use entire document as context
 [ ] better prompt
-[ ] try on some old pdf
+[ ] try on some old pdfs

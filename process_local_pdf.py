@@ -100,7 +100,7 @@ def process_pdf(path):
             # text in the annotation itself
             annot_info = annot.info
             content = annot_info['content'] if 'content' in annot_info else ''
-            
+
             # what is selected in the document
             context = ""
             vertices = annot.vertices
