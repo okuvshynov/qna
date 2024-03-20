@@ -190,6 +190,7 @@ def test_load_pdf(path):
                 # Accessing basic annotation properties
                 info = annot.info  # Get the annotation's info dictionary
                 print(annot.xref)
+                print(annot.type)
                 print(annot.irt_xref)
                 
                 #print(info)
@@ -197,7 +198,35 @@ def test_load_pdf(path):
                 print("\n\n\n\n")
     doc.close()
 
+def test_add_reply(path):
+    doc = fitz.open(path)
+    # Iterate through each page
+    for page in doc:
+        # Get the list of annotations
+        annotations = page.annots([fitz.PDF_ANNOT_TEXT, fitz.PDF_ANNOT_HIGHLIGHT])
+        if annotations:  # If there are annotations on the page
+            for annot in annotations:
+                print(annot.type)
+                if annot.type[0] == fitz.PDF_ANNOT_HIGHLIGHT:
+                    print('adding new one')
+                    reply_annot = page.add_text_annot(fitz.Point(70, 120), "Automated reply")
+                    reply_annot.set_irt_xref(annot.xref)
+                    reply_annot.set_info(content="Automated reply", title="Some Bot")
+                    reply_annot.update()
+                # Accessing basic annotation properties
+                info = annot.info  # Get the annotation's info dictionary
+                print(annot.xref)
+                print(annot.type)
+                print(annot.irt_xref)
+                
+                #print(info)
+                print(f"Annotation: {info['content']}")
+                print("\n\n\n\n")
+    doc.save('samples/textbooks2.pdf', incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
+    doc.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-    pdf_path = 'samples/textbooks.pdf'
-    test_load_pdf(pdf_path)
+    pdf_path = 'samples/textbooks2.pdf'
+    test_add_reply(pdf_path)

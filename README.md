@@ -16,7 +16,8 @@ TBD
 
 ## How it works
 
-
+Looks like in both acrobat reader and preview top-level comment is annot 'Highlight' (=8) and the replies are of Subtype 'Text' (=0). Preview is not good at showing 'in-reply-to' threads though.
+Maybe have 2 different approaches for different viewers?
 
 ## limitations/workarounds
 
