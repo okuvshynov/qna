@@ -20,6 +20,10 @@ assistant_config = [
     AssistantConfig("@haiku ", "claude-3-haiku-20240307", use_context=False, assistant='claude'),
     AssistantConfig("@opus ", "claude-3-opus-20240229", use_context=False, assistant='claude'),
     AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", use_context=False, assistant='claude'),
+    AssistantConfig("@ask+ ", "claude-3-haiku-20240307", use_context=True, assistant='claude'),
+    AssistantConfig("@haiku+ ", "claude-3-haiku-20240307", use_context=True, assistant='claude'),
+    AssistantConfig("@opus+ ", "claude-3-opus-20240229", use_context=True, assistant='claude'),
+    AssistantConfig("@sonnet+ ", "claude-3-sonnet-20240229", use_context=True, assistant='claude'),
     AssistantConfig("@gpt35 ", "gpt-3.5-turbo", use_context=False, assistant='openai'),
 ]
 
@@ -38,6 +42,31 @@ def find_conf(message):
     return confs[0] if confs else None
 
 ###############################################################################
+### Prompt construction
+###############################################################################
+
+def fullprompt(fulltext, selection, question):
+    return f"""
+You are a scientist who wrote the scientific paper. 
+Using paper text in <paper></paper> tags, relevant selection from the paper in <selection></selection> tags 
+and reader's question in <question></question> tags, answer that question as best as you can. 
+You shall use both the paper content and your general knowledge, as reader's question might be more generic.
+
+<paper>
+{fulltext}
+</paper>
+
+<selection>
+{selection}
+</selection>
+
+<question>
+{question}
+</question>
+"""
+
+
+###############################################################################
 ### Anthropic
 ###############################################################################
 def ask_claude(config: AssistantConfig, question):
@@ -46,7 +75,7 @@ def ask_claude(config: AssistantConfig, question):
         model=config.model,
         max_tokens=1024,
         messages=[
-            {"role": "user", "content": question[len(config.prefix):]}
+            {"role": "user", "content": question}
         ]
     )
     if message.content is not None:
@@ -64,7 +93,7 @@ def ask_openai(config: AssistantConfig, question):
         model=config.model,
         max_tokens=1024,
         messages=[
-            {"role": "user", "content": question[len(config.prefix):]}
+            {"role": "user", "content": question}
         ]
     )
     if message.choices:
@@ -91,6 +120,12 @@ def process_pdf(path):
     delimiter = chr(1)
     
     changed = False
+
+    fulltext = ""
+    
+    for _, page in enumerate(doc):
+        fulltext += page.get_text()
+
     for _, page in enumerate(doc, start=1):
         xrefs = [annot.xref for annot in page.annots([8, 9])]
 
@@ -101,18 +136,18 @@ def process_pdf(path):
             annot_info = annot.info
             content = annot_info['content'] if 'content' in annot_info else ''
 
-            # what is selected in the document
-            context = ""
-            vertices = annot.vertices
-            for i in range(0, len(vertices), 4):
-                text = page.get_textbox(fitz.Quad(vertices[i:i + 4]).rect)
-                context += text
-
             # find assistant config to use (if any)
             conf = find_conf(content)
 
             if conf is None or content.endswith(delimiter):
                 continue
+
+            # what is selected in the document
+            selection = ""
+            vertices = annot.vertices
+            for i in range(0, len(vertices), 4):
+                text = page.get_textbox(fitz.Quad(vertices[i:i + 4]).rect)
+                selection += text
 
             assistant = assistants.get(conf.assistant)
 
@@ -120,6 +155,10 @@ def process_pdf(path):
                 logging.error(f'No assistant found for endpoint {conf.assistant}')
                 has_failures = True
                 continue
+
+            question = content[len(conf.prefix):]
+            if conf.use_context:
+                question = fullprompt(fulltext, selection, question)
 
             reply = assistant(conf, content)
             if reply is None:
@@ -140,5 +179,6 @@ def process_pdf(path):
     return not has_failures
 
 if __name__ == "__main__":
-    pdf_path = 'samples/sample.pdf'
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+    pdf_path = 'samples/binaryconnect.pdf'
     process_pdf(pdf_path)
