@@ -1,6 +1,0 @@
-tell application "Preview"
-	set theDocument to front document
-	set thePath to path of theDocument as POSIX file
-	close theDocument
-	open thePath
-end tell
