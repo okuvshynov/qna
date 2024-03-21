@@ -12,7 +12,11 @@ Currently uses Claude API, but adding OpenAI and local llamas should be possible
 
 ## Examples
 
-TBD
+Here's an example asking Anthropic sonnet model some silly question while reading old paper about TVM.
+
+https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593ec2b
+
+
 
 ## How and why it works
 
