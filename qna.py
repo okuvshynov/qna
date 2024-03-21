@@ -7,16 +7,16 @@ import sys
 
 from process_pdf import process_pdf
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-
 class Assistant:
     def __init__(self, working_dir) -> None:
         self.work_queue = queue.Queue()
         self.done_queue = queue.Queue()
         self.dir = working_dir
+
+        # configuration
         self.tick_period = 0.5
         self.debounce_delay = 1.0
-        self.stats_print_period = 10.0 
+        self.stats_print_period = 30.0 
 
     def start(self):
         threading.Thread(target=self.filemonitor, daemon=True).start()
@@ -83,6 +83,7 @@ class Assistant:
             time.sleep(self.tick_period)
 
 if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     if len(sys.argv) != 2:
         logging.error(f'usage: qna.py path/to/folder/to/monitor/')
     Assistant(sys.argv[1]).start()
