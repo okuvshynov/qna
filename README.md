@@ -20,6 +20,10 @@ To tag the bot, use one of the tags '@opus ', '@sonnet ', '@haiku ', '@opus+ ', 
 
 Using context-aware bots on large books is probably a bad idea. I plan to add a 'selection-only' context qualifier, would be something like '@opus! '.
 
+Another example on more recent 1bit llm paper:
+
+https://github.com/okuvshynov/qna/assets/661042/a5f28a59-badd-43a0-aa81-925a282afeb5
+
 ## Prerequisites
 
 ```
