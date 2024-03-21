@@ -8,7 +8,7 @@ Sometimes getting answers might involve including context from the paper, and so
 
 This work was motivated by the following observation - while LLMs are still not that good at creating original and complicated content, they are pretty good at explaining something well known to humanity and not too well known to me. They are good tutors.
 
-Currently uses Claude API, but adding OpenAI and local llamas should be possible.
+Currently uses Claude API, but adding OpenAI and local llamas should not be hard.
 
 ## Examples
 
@@ -16,7 +16,9 @@ Here's an example asking Anthropic sonnet model some question while reading TVM 
 
 https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593ec2b
 
-To tag the bot, use one of the tags @opus, @sonnet, @haiku, @opus+, @sonnet+, @haiku+. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
+To tag the bot, use one of the tags '@opus ', '@sonnet ', '@haiku ', '@opus+ ', '@sonnet+ ', '@haiku+ ' with a space after bot name. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
+
+Using context-aware bots on large books is probably a bad idea. I plan to add a 'selection-only' context qualifier, would be something like '@opus! '.
 
 ## Prerequisites
 
@@ -25,7 +27,9 @@ pip install PyMuPDF
 pip install anthropic
 ```
 
-Anthropic API key should be in environment variable ANTHROPIC_API_KEY 
+Anthropic API key should be in environment variable ANTHROPIC_API_KEY. 
+All of it is tested on MacOS with default Preview PDF viewer. 
+
 
 
 ## How it works
@@ -56,10 +60,17 @@ tell application "Preview"
 end tell
 ```
 
-To summarize, once the script is running, the process is:
-1. Open your PDF
-2. Select a part which you are curious about, highlight it and add a note with your question.
-3. After the note changes, press Cmd-Shift-R.
+To summarize the workflow from user's prospective:
+1. Add a refresh hotkey (see above)
+2. Start the script to monitor the directory for changes:
+
+```
+% python3 qna.py ~/papers/  
+```
+   
+3. Open your PDF with Apple Preview
+4. Select a part which you are curious about, highlight it and add a note with your question.
+5. After the note changes, press Cmd-Shift-R.
 
 So far this is much less disruptive than googling around or asking ChatGPT/Claude in a separate chat application.
 
@@ -73,8 +84,8 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 
 ```
 [x] context
-	[x] selection
-	[x] entire document
+	[ ] selection-only
+	[x] selection + entire document
 [x] openAI integration
 [x] better prompt
 [ ] pip install
