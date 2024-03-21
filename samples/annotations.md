@@ -1,18 +1,18 @@
 There are countless applications to read and annotate pdf documents, however, the presentation and support of different features varies.
 
-Here's a brief illustration. Let's say we added a highlight and a annotation in Apple Preview to a simple test document [samples/test_annot_0.pdf](samples/test_annot_0.pdf).
+Here's a brief illustration. Let's say we added a highlight and a annotation in Apple Preview to a simple test document [test_annot_0.pdf](test_annot_0.pdf).
 
 It would look like
 
-![samples/img/annot0_preview.png](samples/img/annot0_preview.png)
+![img/annot0_preview.png](img/annot0_preview.png)
 
 If we open the same file in Adobe Acrobat, we'll see a nice comment thread we can reply to:
 
-![samples/img/annot0_acrobat.png](samples/img/annot0_acrobat.png)
+![img/annot0_acrobat.png](img/annot0_acrobat.png)
 
 Now if we open the same file in preview again, we'll see something much less clear:
 
-![samples/img/annot0_reply_preview.png](samples/img/annot0_reply_preview.png)
+![img/annot0_reply_preview.png](img/annot0_reply_preview.png)
 
 What happens under the hood?
 
@@ -37,15 +37,15 @@ So internally it all make sense, discussions created this way are not very easy 
 
 Try open it in Google Chrome: 
 
-![samples/img/annot0_reply_chrome.png](samples/img/annot0_reply_chrome.png).
+![img/annot0_reply_chrome.png](img/annot0_reply_chrome.png).
 
 We can see both, but the content is visible only on mouse hover and the 'in-reply-to' nature of the discussion is not obvious. There's no way as far as I can see to reply to it.
 
 Let's see how would pdf viewers in some popular doc sharing platforms handle it.
 
 Dropbox seem to have its own system for comment which is probably completely external to the pdf structure:
-![samples/img/annot0_reply_pdf.png](samples/img/annot0_reply_pdf.png).
+![img/annot0_reply_dropbox.png](img/annot0_reply_dropbox.png).
 
 Google drive seem to import the thread to its own comment system:
-![samples/img/annot0_reply_google_drive.png](samples/img/annot0_reply_google_drive.png).
+![img/annot0_reply_google_drive.png](img/annot0_reply_google_drive.png).
 
