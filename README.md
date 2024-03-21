@@ -30,22 +30,22 @@ Anthropic API key should be in environment variable ANTHROPIC_API_KEY
 
 ## How it works
 
-Roughly the current process is:
-1. Have a script continuously monitoring a configured folder:
+the current process is:
+1. script continuously monitors a configured folder:
 
 ```
 % python3 qna.py ~/papers/  
 ```
 
-2. In Apple Preview, where I'm reading the paper, add a note with some question and tag the bot, for example ```@opus what's the difference between DDR and GDDR?```, save the file after adding a note.
+2. In Apple Preview, where user is reading the paper, user adds a note with some question and tag the bot, for example ```@opus what's the difference between DDR and GDDR?```, save the file after adding a note.
 
-3. In the background, the service will notice the update, load the file and check if there's a new, not answered query for the bot.
+3. In the background, the service notices the update, loads the file and checks if there's a new, not answered query for the bot.
 
-4. Construct the message to the bot. If the bot tag was of the form '@botname ', only the question itself will be a part of the message. If the tag was of the form '@botname+ ', the entire document, the selection and the question would be included in the message. Here's prompt construction: https://github.com/okuvshynov/qna/blob/main/process_pdf.py#L48
+4. If there is a new query, service constructs the message to the bot. If the bot tag was of the form '@botname ', only the question itself will be a part of the message. If the tag was of the form '@botname+ ', the entire document, the selection and the question would be included in the message. Here's prompt construction: https://github.com/okuvshynov/qna/blob/main/process_pdf.py#L48
 
-5. Once the reply arrives, if it is a success, update the same annotation in PDF file with the reply. It will also insert non-printable marker which is used to identify that question was already answered. This sounds a little weird - there's a way to create a new annotation in PDF and make it a IRT = 'in reply to' the original one, but the rendering of that is pretty off in many PDF viewers (More details in [samples/annotations.md](samples/annotations.md)). The intent here is not only to get the answer right now, but to keep the annotated version of the document and be able to read it in a potentially different environment later.
+5. Once the reply arrives, if it is a success, service updates the same annotation in PDF file with the reply. Non-printable marker is inserted to the annotation as well, so that later service can identify that question was already answered. This sounds a little weird - there's a way to create a new annotation in PDF and make it an IRT = 'in reply to' the original one, but the rendering of that is pretty off in many PDF viewers (More details in [samples/annotations.md](samples/annotations.md)). As the intent here is not only to get the answer right now, but to keep the annotated version of the document and be able to read it in a potentially different environment later, keeping it in a single note is good.
 
-6. Apple preview will notice that there's a change to the file and display the updated annotation. However, such an update still seem to mess up some internal state and after that adding new highlight/annotation manually was sometimes not working. To work around this, we can force reload the PDF - similar to browser page refresh, which keeps the scroll position. Add this AppleScript to Automator, assign hotkey like Cmd-Shift-R to it in Settings->Keyboard
+6. Apple preview will notice that there's a change to the file and display the updated annotation. However, such an update still seems to mess up some internal state and after that adding new highlight/annotation manually was sometimes not working. To work around this, we can force PDF reload - similar to browser page refresh, which keeps the scroll position. Add this AppleScript to Automator, assign hotkey like Cmd-Shift-R to it in Settings->Keyboard
 
 ```
 tell application "Preview"
@@ -65,7 +65,7 @@ So far this is much less disruptive than googling around or asking ChatGPT/Claud
 
 ### odd pdfs
 
-PDFs are pretty wild, so even for ones which has actual text and not scanned images, occasionally I got some for which the library didn't work - either extracting annotation texts or saving new annotations failed. These annotations were still there, as more mature software like Acrobat Reader could read and display them, but fixing pdf libraries was a little bit beyond the scope. 
+PDFs are pretty wild, so even for ones which has actual text and not scanned images, occasionally I got some for which PyMuPDF library didn't work - either extracting annotation texts or saving new annotations failed. These annotations were still there, as more mature software like Acrobat Reader could read and display them, but fixing pdf libraries was a little bit beyond the scope. 
 
 The workaround for that was to print those odd PDF files to new PDF files using built-in functionality in MacOS.
 
