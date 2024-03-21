@@ -2,7 +2,7 @@
 
 TL;DR - AI pretends to be paper/textbook author, you can ask it questions about the paper as a whole, specific parts of it right in the pdf viewing app (e.g. Apple Preview) using annotations.
 
-The goal here is to improve on a process of reading a somewhat complicated text, a scientific paper or a textbook. Rather than summarization and understanding high-level conclusions from the paper, we care about reader's understanding of all the details. The idea was to allow to 'chat with paper author', who'd probably be able to explain both the paper itself and some relevant context. From the product point of view, questions and answers should also live right there where the document is, and not in a separate chat window, so they are implemented as PDF annotations. Later you should be able to open that file in another place (your tablet?) and see all the questions/answers.
+The goal here is to improve on a process of reading a somewhat complicated text, a scientific paper or a textbook. Rather than summarization and understanding high-level conclusions from the paper, we care about reader's understanding of all the details. The idea was to allow to 'chat with paper author', who'd probably be able to explain both the paper itself and some relevant context. From the product point of view, questions and answers should also live right there where the document is, so they are implemented as PDF annotations. Later you should be able to open that file in another place and see all the questions/answers.
 
 Sometimes getting answers might involve including some context from the paper (or entire paper), and sometimes it would be very generic questions about something reader is not familiar with and paper content would not even be that relevant, so there are different bot tagging options for that.
 
@@ -16,6 +16,7 @@ Here's an example asking Anthropic sonnet model some question while reading TVM 
 
 https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593ec2b
 
+To tag the bot, use one of the tags @opus, @sonnet, @haiku, @opus+, @sonnet+, @haiku+. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem says?) rather than something about the paper itself.
 
 ## How it works
 
