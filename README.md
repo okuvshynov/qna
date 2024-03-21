@@ -4,9 +4,9 @@ TL;DR - AI pretends to be paper/textbook author, you can ask it questions about 
 
 The goal here is to improve on a process of reading a somewhat complicated text, a scientific paper or a textbook. Rather than summarization and understanding high-level conclusions from the paper, we care about reader's understanding of all the details. The idea was to allow to 'chat with paper author', who'd probably be able to explain both the paper itself and some relevant context. From the product point of view, questions and answers should also live right there where the document is, and not in a separate chat window, so they are implemented as PDF annotations.
 
-We look for an ability to ask some questions and get answers about specific pieces of the text. Sometimes that might involve including some context from the paper, and sometimes it would be very generic questions about something reader is not familiar with and paper content would not even be that relevant.
+We look for an ability to ask some questions and get answers about specific pieces of the text. Sometimes that might involve including some context from the paper (or entire paper), and sometimes it would be very generic questions about something reader is not familiar with and paper content would not even be that relevant.
 
-This work was motivated by the following observation - while LLMs are still not that good at creating original and complicated content, they are pretty good at explaining something well known to 'humanity' and not too well known for user personally. They are good tutors.
+This work was motivated by the following observation - while LLMs are still not that good at creating original and complicated content, they are pretty good at explaining something well known to humanity and not too well known for user personally. They are good tutors.
 
 Currently uses Claude API, but adding OpenAI and local llamas should be possible.
 
@@ -14,41 +14,24 @@ Currently uses Claude API, but adding OpenAI and local llamas should be possible
 
 TBD
 
-## How it works
+## How and why it works
 
-Looks like in both acrobat reader and preview top-level comment is annot 'Highlight' (=8) and the replies are of Subtype 'Text' (=0). Preview is not good at showing 'in-reply-to' threads though.
-Maybe have 2 different approaches for different viewers?
-Seems suboptimal, would be better to have annotated pdf viewable everywhere.
+Roughly the current process is:
+1. Have a script continuously monitoring a configured folder:
 
-## Pdf Viewers
+```
+% python3 qna.py ~/papers/
+```
 
-1. Apple Preview
-2. Acrobat Reader
-3. Chrome
-4. Dropbox
-5. iCloud app on iPhone/iPad
-6. Google Drive
+2. In Apple Preview, where I'm reading the paper, add a note with some question and tag the bot, for example ```@opus what's the difference between DDR and GDDR?```, save the file after adding a note.
 
-The test we need to do is this:
-1. What kind of comments/annotations are there, and how they can interact with each other?
-2. Seems like 'Highlight' is at least shown everywhere reasonably.
+3. In the background, the service will notice the update, load the file and check if there's a new, not answered query for the bot.
 
-## limitations/workarounds
+4. Construct the message to the bot. If the bot tag was of the form '@botname ', only the question itself will be a part of the message. If the tag was of the form '@botname+ ', the entire document, the selection and the question would be included in the message. Here's prompt construction: 
 
-1. No 'discussions' which retain context, just pairs of question/answer for now.
-2. I tested it with Apple Preview, and while typical pdf annotations are used, different pdf viewers/collaboration tools might have varying levels of support.
+5. Once the reply arrives, if it is a success, update the same annotation in pdf file with the reply. It sounds a little weird - there's a way to create a new annotation in pdf and make it a 'reply to' the oroginal one, but the rendering of that is pretty off in many pdf viewers (More details in [samples/annotations.md](samples/annotations.md)). The intent here is not only to get the answer right now, but to keep the annotated version of the document and be able to read it in a potentially different environment later.
 
-### odd pdfs
-
-pdfs are pretty wild, so even for ones which has actual text and not scanned images, occasionally I got some for which the library didn't work - either extracting annotation texts or saving new annotations failed. These annotations were still there, as more mature software (Apple's Preview or Acrobat Reader) could read and display them, but fixing pdf libraries was a little bit beyond the scope. 
-
-The workaround for that was to print those odd pdf files to new pdf files using built-in functionality in MacOS.
-
-### Refreshing the document in Preview
-
-While Preview can handle external updates of the file, updating annotaion still supposedly messes up Preview's internal state and I could not add new annotation sometimes. The workaround here was to refresh the document. Preview didn't have a hotkey for that, so we can do the following: 
-
-Add this AppleScript to Automator, assign hotkey like Cmd-Shift-R to it in Settings->Keyboard
+6. Apple preview will notice that there's a change to the file and display the updated annotation. However, such an update seem to still mess up some internal state and after that adding new highlight was not working occasionally. To work around this, we can force reload the pdf - similar to browser page refresh, which keeps the scroll position. Add this AppleScript to Automator, assign hotkey like Cmd-Shift-R to it in Settings->Keyboard
 
 ```
 tell application "Preview"
@@ -59,17 +42,16 @@ tell application "Preview"
 end tell
 ```
 
-### Refreshing document in Acrobat Reader
+To summarize, once the script is running, what you have to do is something like this:
+1. Open your pdf
+2. Select a part which you are not very sure about, highlight it and add a note with your question.
+3. After the note changes, press Cmd-Shift-R. Save your file.
 
-```
-osascript -e 'quit app "Adobe Acrobat Reader"'
-open -a /Applications/Adobe\ Acrobat\ Reader.app binaryconnect.pdf
-```
+### odd pdfs
 
+pdfs are pretty wild, so even for ones which has actual text and not scanned images, occasionally I got some for which the library didn't work - either extracting annotation texts or saving new annotations failed. These annotations were still there, as more mature software (Apple's Preview or Acrobat Reader) could read and display them, but fixing pdf libraries was a little bit beyond the scope. 
 
-Now the typical workflow looks like this:
-1. Highlight a relevant section of text
-2. Add note to the highlight, for example "@sonnet+ why is "
+The workaround for that was to print those odd pdf files to new pdf files using built-in functionality in MacOS.
 
 ## TODO
 

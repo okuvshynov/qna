@@ -179,25 +179,6 @@ def process_pdf(path):
 
     return not has_failures
 
-def test_load_pdf(path):
-    doc = fitz.open(path)
-    # Iterate through each page
-    for page in doc:
-        # Get the list of annotations
-        annotations = page.annots([fitz.PDF_ANNOT_TEXT, fitz.PDF_ANNOT_HIGHLIGHT])
-        if annotations:  # If there are annotations on the page
-            for annot in annotations:
-                # Accessing basic annotation properties
-                info = annot.info  # Get the annotation's info dictionary
-                print(annot.xref)
-                print(annot.type)
-                print(annot.irt_xref)
-                
-                #print(info)
-                print(f"Annotation: {info['content']}")
-                print("\n\n\n\n")
-    doc.close()
-
 def test_add_reply(path):
     doc = fitz.open(path)
     # Iterate through each page
@@ -228,5 +209,3 @@ def test_add_reply(path):
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-    pdf_path = 'samples/mimalloc_printed.pdf'
-    test_load_pdf(pdf_path)
