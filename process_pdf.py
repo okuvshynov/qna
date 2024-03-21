@@ -208,7 +208,7 @@ def test_add_reply(path):
             for annot in annotations:
                 print(annot.type)
                 if annot.type[0] == fitz.PDF_ANNOT_HIGHLIGHT:
-                    print('adding new one')
+                    # TODO where do we put this?
                     reply_annot = page.add_text_annot(fitz.Point(70, 120), "Automated reply")
                     reply_annot.set_irt_xref(annot.xref)
                     reply_annot.set_info(content="Automated reply", title="Some Bot")
@@ -228,5 +228,5 @@ def test_add_reply(path):
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-    pdf_path = 'samples/textbooks2.pdf'
-    test_add_reply(pdf_path)
+    pdf_path = 'samples/mimalloc_printed.pdf'
+    test_load_pdf(pdf_path)

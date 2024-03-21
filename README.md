@@ -18,6 +18,20 @@ TBD
 
 Looks like in both acrobat reader and preview top-level comment is annot 'Highlight' (=8) and the replies are of Subtype 'Text' (=0). Preview is not good at showing 'in-reply-to' threads though.
 Maybe have 2 different approaches for different viewers?
+Seems suboptimal, would be better to have annotated pdf viewable everywhere.
+
+## Pdf Viewers
+
+1. Apple Preview
+2. Acrobat Reader
+3. Chrome
+4. Dropbox
+5. iCloud app on iPhone/iPad
+6. Google Drive
+
+The test we need to do is this:
+1. What kind of comments/annotations are there, and how they can interact with each other?
+2. Seems like 'Highlight' is at least shown everywhere reasonably.
 
 ## limitations/workarounds
 
