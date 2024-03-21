@@ -18,13 +18,23 @@ https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593
 
 To tag the bot, use one of the tags @opus, @sonnet, @haiku, @opus+, @sonnet+, @haiku+. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
 
+## Prerequisites
+
+```
+pip install PyMuPDF
+pip install anthropic
+```
+
+Anthropic API key should be in environment variable ANTHROPIC_API_KEY 
+
+
 ## How it works
 
 Roughly the current process is:
 1. Have a script continuously monitoring a configured folder:
 
 ```
-% python3 qna.py ~/papers/  # expects environment variable ANTHROPIC_API_KEY to have a valid key.
+% python3 qna.py ~/papers/  
 ```
 
 2. In Apple Preview, where I'm reading the paper, add a note with some question and tag the bot, for example ```@opus what's the difference between DDR and GDDR?```, save the file after adding a note.
