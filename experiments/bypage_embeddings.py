@@ -10,6 +10,10 @@ doc = fitz.open(sys.argv[1])
 
 texts = [page.get_text() for page in doc]
 
+total_len = sum(len(page) for page in texts)
+
+print(f"total length in characters: {total_len}")
+
 times = []
 
 def time_and_embed(text):
