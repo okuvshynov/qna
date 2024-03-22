@@ -10,6 +10,8 @@ This work was motivated by the following observation - while LLMs are still not 
 
 Currently uses Claude API, but adding OpenAI and local llamas should not be hard.
 
+At the moment, only uses model directly, no RAG. Some experimentation on local embedding store [in progress](experiments/bypage_embeddings.py).
+
 ## Examples
 
 Here's an example asking Anthropic sonnet model some question while reading TVM paper (4x speed up).
