@@ -3,6 +3,7 @@ import fitz
 import logging
 from dataclasses import dataclass
 from enum import Enum
+import os
 
 ###############################################################################
 ### CONFIG
@@ -12,28 +13,22 @@ from enum import Enum
 class AssistantConfig:
     prefix: str
     model: str
-    use_context: bool
+    prompt: str
     assistant: str
 
-class ContextMode(Enum):
-    QUESTION_ONLY = 1
-    WITH_HIGHLIGHT = 2
-    WITH_FULL_CONTENT = 3
-
-
 assistant_config = [
-    AssistantConfig("@ask ", "claude-3-haiku-20240307", use_context=ContextMode.QUESTION_ONLY, assistant='claude'),
-    AssistantConfig("@haiku ", "claude-3-haiku-20240307", use_context=ContextMode.QUESTION_ONLY, assistant='claude'),
-    AssistantConfig("@opus ", "claude-3-opus-20240229", use_context=ContextMode.QUESTION_ONLY, assistant='claude'),
-    AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", use_context=ContextMode.QUESTION_ONLY, assistant='claude'),
-    AssistantConfig("@ask+ ", "claude-3-haiku-20240307", use_context=ContextMode.WITH_FULL_CONTENT, assistant='claude'),
-    AssistantConfig("@haiku+ ", "claude-3-haiku-20240307", use_context=ContextMode.WITH_FULL_CONTENT, assistant='claude'),
-    AssistantConfig("@opus+ ", "claude-3-opus-20240229", use_context=ContextMode.WITH_FULL_CONTENT, assistant='claude'),
-    AssistantConfig("@sonnet+ ", "claude-3-sonnet-20240229", use_context=ContextMode.WITH_FULL_CONTENT, assistant='claude'),
-    AssistantConfig("@ask* ", "claude-3-haiku-20240307", use_context=ContextMode.WITH_HIGHLIGHT, assistant='claude'),
-    AssistantConfig("@haiku* ", "claude-3-haiku-20240307", use_context=ContextMode.WITH_HIGHLIGHT, assistant='claude'),
-    AssistantConfig("@opus* ", "claude-3-opus-20240229", use_context=ContextMode.WITH_HIGHLIGHT, assistant='claude'),
-    AssistantConfig("@sonnet* ", "claude-3-sonnet-20240229", use_context=ContextMode.WITH_HIGHLIGHT, assistant='claude'),
+    AssistantConfig("@ask ", "claude-3-haiku-20240307", prompt="question_v0", assistant='claude'),
+    AssistantConfig("@haiku ", "claude-3-haiku-20240307", prompt="question_v0", assistant='claude'),
+    AssistantConfig("@opus ", "claude-3-opus-20240229", prompt="question_v0", assistant='claude'),
+    AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", prompt="question_v0", assistant='claude'),
+    AssistantConfig("@ask+ ", "claude-3-haiku-20240307", prompt="fulltext_v0", assistant='claude'),
+    AssistantConfig("@haiku+ ", "claude-3-haiku-20240307", prompt="fulltext_v0", assistant='claude'),
+    AssistantConfig("@opus+ ", "claude-3-opus-20240229", prompt="fulltext_v0", assistant='claude'),
+    AssistantConfig("@sonnet+ ", "claude-3-sonnet-20240229", prompt="fulltext_v0", assistant='claude'),
+    AssistantConfig("@ask* ", "claude-3-haiku-20240307", prompt="selection_v0", assistant='claude'),
+    AssistantConfig("@haiku* ", "claude-3-haiku-20240307", prompt="selection_v0", assistant='claude'),
+    AssistantConfig("@opus* ", "claude-3-opus-20240229", prompt="selection_v0", assistant='claude'),
+    AssistantConfig("@sonnet* ", "claude-3-sonnet-20240229", prompt="selection_v0", assistant='claude'),
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
@@ -54,40 +49,12 @@ def find_conf(message):
 ### Prompt construction
 ###############################################################################
 
-def fullprompt(fulltext, selection, question):
-    return f"""
-You are a scientist who wrote the scientific paper. 
-Using paper text in <paper></paper> tags, relevant selection from the paper in <selection></selection> tags 
-and reader's question in <question></question> tags, answer that question as best as you can. 
-You shall use both the paper content and your general knowledge, as reader's question might be more generic.
-
-<paper>
-{fulltext}
-</paper>
-
-<selection>
-{selection}
-</selection>
-
-<question>
-{question}
-</question>
-"""
-
-def highlight_prompt(selection, question):
-    return f"""
-You are a scientist who wrote the scientific paper. 
-Using your general knowledge, relevant selection from the paper in <selection></selection> tags and reader's question in <question></question> tags, answer that question as best as you can. 
-You shall use both the user input and your general knowledge, as reader's question might be more generic.
-
-<selection>
-{selection}
-</selection>
-
-<question>
-{question}
-</question>
-"""
+def format_prompt(params, prompt_name):
+    with open(os.path.join("prompts", prompt_name)) as f:
+        prompt = f.read()
+        for k, v in params:
+            prompt = prompt.replace(k, v)
+        return prompt
 
 
 ###############################################################################
@@ -95,6 +62,7 @@ You shall use both the user input and your general knowledge, as reader's questi
 ###############################################################################
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
+    logging.info(f'question[:1024] {question[:1024]}')
     message = anthropic.Anthropic().messages.create(
         model=config.model,
         max_tokens=1024,
@@ -152,12 +120,12 @@ def process_pdf(path):
                 text = page.get_textbox(fitz.Quad(vertices[i:i + 4]).rect)
                 selection += text
 
-
             question = content[len(conf.prefix):]
-            if conf.use_context == ContextMode.WITH_FULL_CONTENT:
-                question = fullprompt(fulltext, selection, question)
-            elif conf.use_context == ContextMode.WITH_HIGHLIGHT:
-                question = highlight_prompt(selection, question)
+            question = format_prompt([
+                ("{{fulltext}}", fulltext),
+                ("{{selection}}", selection),
+                ("{{question}}", question),
+            ], conf.prompt)
 
             assistant = assistants.get(conf.assistant)
 
