@@ -1,43 +1,73 @@
 import fitz
-import sys
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import time
+import logging
+import hashlib
+import threading
+import queue
 
-model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+class EmbeddingStore:
+    def __init__(self):
+        self.model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+        self.q = queue.Queue()
+        self.lock = threading.Lock()
+        self.embeddings = {}
+        self.enqueued = {}
+        threading.Thread(target=self.embedding_computation_loop, daemon=True).start()
 
-doc = fitz.open(sys.argv[1])
+    def checksum(s):
+        hash_object = hashlib.md5(s.encode())
+        return hash_object.digest()
 
-texts = [page.get_text() for page in doc]
+    # ABA problem here because of debounce? 
+    def embedding_computation_loop(self):
+        while True:
+            (path, pages) = self.q.get()
+            new_checksum = EmbeddingStore.checksum("".join(pages))
 
-total_len = sum(len(page) for page in texts)
+            changed = True
 
-print(f"total length in characters: {total_len}")
+            with self.lock:
+                if path in self.embeddings.keys():
+                    old_checksum, _ = self.embeddings[path]
+                    # it is possible to get multiple entries in the queue.
+                    # there's no dedup at enqueue time.
+                    # TODO: double check this, maybe not possible anymore
+                    if old_checksum == new_checksum:
+                        changed = False
 
-times = []
+            if changed:
+                # this is long-running and needs to be outside the lock
+                embeddings = np.array(self.model.encode(pages))
+                logging.info(f'computed page-level embeddings for {path}')
 
-def time_and_embed(text):
-    global times
-    start = time.time()
-    res = model.encode(text)
-    times.append(time.time() - start)
-    return res
+                with self.lock:
+                    self.embeddings[path] = (new_checksum, embeddings)
 
-embeddings = np.array([time_and_embed(text) for text in texts])
+            self.q.task_done()
 
-print(f"total {sum(times)} seconds for {len(times)} pages")
+    def get_topk_pages(self, path, pages, question, current_page_index, k):
+        new_checksum = EmbeddingStore.checksum("".join(pages))
+        embeds = None
 
-doc.close()
+        with self.lock:
+            if path in self.embeddings.keys():
+                (old_checksum, embeddings) = self.embeddings[path]
+                if old_checksum == new_checksum:
+                    embeds = embeddings
+            enqueued_checksum = self.enqueued.get(path)
 
-query = " ".join(sys.argv[2:])
+        if embeds is not None:
+            # we got valid embeddings.
+            query_embedding = self.model.encode(question)
+            query_embedding = query_embedding / np.linalg.norm(query_embedding)
+            similarities = np.dot(embeddings, query_embedding)
+            top_k_indices = set(np.argsort(similarities)[::-1][:k])
+            top_k_indices.add(current_page_index)
+            logging.info(f'using pages {top_k_indices} from {path} as context')
+            return "".join(pages[i] for i in sorted(list(top_k_indices)))
 
-query_embedding = model.encode(query)
-query_embedding = query_embedding / np.linalg.norm(query_embedding)
-
-similarities = np.dot(embeddings, query_embedding)
-
-k = 3
-top_k_indices = np.argsort(similarities)[::-1][:k]
-
-for i in top_k_indices:
-    print(texts[i][:256])
+        logging.warn(f'embeddings are requested but missing for {path}')
+        if enqueued_checksum is None or enqueued_checksum != new_checksum:
+            self.q.put((path, pages))
+        return ""

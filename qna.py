@@ -5,7 +5,7 @@ import threading
 import logging
 import sys
 
-from process_pdf import process_pdf
+from process_pdf import PDFProcessor
 
 class Assistant:
     def __init__(self, working_dir) -> None:
@@ -16,7 +16,9 @@ class Assistant:
         # configuration
         self.tick_period = 0.5
         self.debounce_delay = 1.0
-        self.stats_print_period = 30.0 
+        self.stats_print_period = 30.0
+
+        self.processor = PDFProcessor()
 
     def start(self):
         threading.Thread(target=self.filemonitor, daemon=True).start()
@@ -28,7 +30,7 @@ class Assistant:
             #  - no need to reply to anything
             #  - there was a need to reply and it succeeded
             # returns False if there was a need to reply and a failure to do so (e.g. network error)
-            self.done_queue.put((path, tstamp, process_pdf(path)))
+            self.done_queue.put((path, tstamp, self.processor.process_pdf(path)))
             
             # this is just queue housekeeping, if the task failed (see above) we'll enqueue file again
             self.work_queue.task_done()
