@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 import os
 
-from experiments import bypage_embeddings
+from embeddings import EmbeddingStore
 
 ###############################################################################
 ### CONFIG
@@ -89,7 +89,7 @@ assistants = {
 
 class PDFProcessor:
     def __init__(self):
-        self.embeds_store = bypage_embeddings.EmbeddingStore()
+        self.embeds_store = EmbeddingStore()
 
     def process_pdf(self, path):
         doc = fitz.open(path)

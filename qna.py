@@ -48,7 +48,6 @@ class Assistant:
                 try:
                     (path, tstamp, success) = self.done_queue.get_nowait()
                     if success:
-                        logging.info(f'updating process time: {path} @ {tstamp}')
                         last_update_time_processed[path] = tstamp
                         total_done += 1
                     # so that we can retry and enqueue again
@@ -68,10 +67,9 @@ class Assistant:
 
                         if last_processed_time < last_update_time and not file_path in enqueued:
                             if last_update_time > debounce_cutoff:
-                                logging.info(f'has new file, wait for debounce')
+                                logging.info(f'has new file but wait for debounce')
                                 continue
 
-                            logging.info(f'enqueue {file_path} @ {last_update_time} < {debounce_cutoff}')
                             total_enqueued += 1
                             self.work_queue.put((file_path, last_update_time))
                             enqueued.add(file_path)
