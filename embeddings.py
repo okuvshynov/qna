@@ -1,10 +1,13 @@
-import fitz
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import logging
 import hashlib
 import threading
 import queue
+import os
+
+# huggingface tokenizers complain about threading i use
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class EmbeddingStore:
     def __init__(self):
@@ -19,7 +22,6 @@ class EmbeddingStore:
         hash_object = hashlib.md5(s.encode())
         return hash_object.digest()
 
-    # ABA problem here because of debounce? 
     def embedding_computation_loop(self):
         while True:
             (path, pages) = self.q.get()
@@ -53,7 +55,6 @@ class EmbeddingStore:
                 (old_checksum, embeddings) = self.embeddings[path]
                 if old_checksum == new_checksum:
                     embeds = embeddings
-
 
         if embeds is not None:
             # we got valid embeddings.

@@ -38,9 +38,10 @@ class Assistant:
     def filemonitor(self):
         last_update_time_processed = {}
         enqueued = set()
+
+        # TODO: log these occasionally
         total_enqueued = 0
         total_done = 0
-        last_stats_log = 0
 
         while True:
             # non-blocking read from done queue
@@ -67,18 +68,13 @@ class Assistant:
 
                         if last_processed_time < last_update_time and not file_path in enqueued:
                             if last_update_time > debounce_cutoff:
-                                logging.info(f'has new file but wait for debounce')
+                                logging.info(f'{file_path} updated, waiting for debounce')
                                 continue
 
                             total_enqueued += 1
                             self.work_queue.put((file_path, last_update_time))
                             enqueued.add(file_path)
                             continue
-
-            now = time.time()
-            if last_stats_log + self.stats_print_period < now:
-                logging.info(f'total enqueued: {total_enqueued}, total done: {total_done}')
-                last_stats_log = now
 
             time.sleep(self.tick_period)
 

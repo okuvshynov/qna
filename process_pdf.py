@@ -67,7 +67,6 @@ def format_prompt(params, prompt_name):
 ###############################################################################
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
-    logging.info(f'question[:1024] {question[:1024]}')
     message = anthropic.Anthropic().messages.create(
         model=config.model,
         max_tokens=1024,
