@@ -31,8 +31,6 @@ class EmbeddingStore:
                 if path in self.embeddings.keys():
                     old_checksum, _ = self.embeddings[path]
                     # it is possible to get multiple entries in the queue.
-                    # there's no dedup at enqueue time.
-                    # TODO: double check this, maybe not possible anymore
                     if old_checksum == new_checksum:
                         changed = False
 
@@ -55,7 +53,7 @@ class EmbeddingStore:
                 (old_checksum, embeddings) = self.embeddings[path]
                 if old_checksum == new_checksum:
                     embeds = embeddings
-            enqueued_checksum = self.enqueued.get(path)
+
 
         if embeds is not None:
             # we got valid embeddings.
@@ -68,6 +66,12 @@ class EmbeddingStore:
             return "".join(pages[i] for i in sorted(list(top_k_indices)))
 
         logging.warn(f'embeddings are requested but missing for {path}')
-        if enqueued_checksum is None or enqueued_checksum != new_checksum:
-            self.q.put((path, pages))
+        with self.lock:
+            enqueued_checksum = self.enqueued.get(path)
+            # we never really remove values from self.enqueued
+            # it's more like 'computed or enqueued ever' rather than 'in queue now'
+            if enqueued_checksum is None or enqueued_checksum != new_checksum:
+                self.enqueued[path] = new_checksum
+
+        self.q.put((path, pages))
         return ""
