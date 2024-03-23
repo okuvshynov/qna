@@ -31,6 +31,7 @@ https://github.com/okuvshynov/qna/assets/661042/a5f28a59-badd-43a0-aa81-925a282a
 ```
 pip install PyMuPDF
 pip install anthropic
+pip install sentence-transformer # for embeddings
 ```
 
 Anthropic API key should be in environment variable ANTHROPIC_API_KEY. 
