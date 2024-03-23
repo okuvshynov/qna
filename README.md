@@ -10,7 +10,7 @@ This work was motivated by the following observation - while LLMs are still not 
 
 Currently uses Claude API, but adding OpenAI and local llamas should not be hard.
 
-At the moment, only uses model directly, no RAG. Some experimentation on local embedding store [in progress](experiments/bypage_embeddings.py).
+Experimentation on local embedding store to provide some pages based on embeddings is [in progress](https://github.com/okuvshynov/qna/issues/1)
 
 ## Examples
 
