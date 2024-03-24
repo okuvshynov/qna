@@ -98,19 +98,19 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 
 ```
 [x] context
-	[ ] selection-only
+	[x] selection-only
 	[x] selection + entire document
 [x] openAI integration
 [x] better prompt
 [ ] pip install ...
-[ ] extract prompts out of source. Make easier to configure, etc.
-[ ] Some basic embedding store for large books. Just split by page, find best N pages and include in the prompt.
+[x] extract prompts out of source. Make easier to configure, etc.
+[x] Some basic embedding store for large books. Just split by page, find best N pages and include in the prompt.
 [ ] instructions on how to use
 [x] check other pdf viewers on desktops/iPad/phones. How do they handle annotations?
 [ ] configuration
 [ ] try on some old pdfs
-[ ] monitoring remote files?
-[ ] local llama/mistral integration
+[ ] monitoring remote files? Best way to use on tablet/phone?
+[ ] local llama/mistral integration. What should be the 
 ```
 
 ## useful references
