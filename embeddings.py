@@ -5,6 +5,7 @@ import hashlib
 import threading
 import queue
 import os
+import json
 
 # huggingface tokenizers complain about threading i use
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -16,11 +17,39 @@ class EmbeddingStore:
         self.lock = threading.Lock()
         self.embeddings = {}
         self.enqueued = {}
+        self.loadall()
         threading.Thread(target=self.embedding_computation_loop, daemon=True).start()
+
+    def save(self, path, checksum, embeddings):
+        cache_path = os.path.expanduser("~/.cache/qna")
+
+        os.makedirs(cache_path, exist_ok=True)
+
+        base_name = hashlib.sha256(path.encode()).hexdigest()
+        base_path = os.path.join(cache_path, base_name)
+        with open(f'{base_path}.json', 'w') as json_file:
+            json.dump({"path": path, "checksum": checksum}, json_file)
+        np.save(f'{base_path}.npy', embeddings)
+
+    def loadall(self):
+        cache_path = os.path.expanduser("~/.cache/qna")
+        for file in os.listdir(cache_path):
+            try:
+                base_name, extension = os.path.splitext(file)
+                base_path = os.path.join(cache_path, base_name)
+                if extension == '.json':
+                    embeddings = np.load(f'{base_path}.npy')
+                    with open(f'{base_path}.json', 'r') as f:
+                        d = json.load(f)
+                        self.embeddings[d['path']] = (d['checksum'], embeddings)
+                        logging.info(f'loaded embeddings from cache for {d["path"]}')
+            except:
+                logging.error(f'error processing {file} from embedding cache')
+
 
     def checksum(s):
         hash_object = hashlib.md5(s.encode())
-        return hash_object.digest()
+        return hash_object.hexdigest()
 
     def embedding_computation_loop(self):
         while True:
@@ -43,6 +72,8 @@ class EmbeddingStore:
 
                 with self.lock:
                     self.embeddings[path] = (new_checksum, embeddings)
+                    # this is the only place we update embeddings, let's write them to cache here as well
+                    self.save(path, new_checksum, embeddings)
 
             self.q.task_done()
 
@@ -64,7 +95,10 @@ class EmbeddingStore:
             top_k_indices = set(np.argsort(similarities)[::-1][:k])
             top_k_indices.add(current_page_index)
             logging.info(f'using pages {top_k_indices} from {path} as context')
-            return "".join(pages[i] for i in sorted(list(top_k_indices)))
+            max_index = max(top_k_indices)
+            if max_index >= len(pages):
+                logging.error(f'attempting to get page content for index {max_index} for document {path} with {len(pages)} pages.')
+            return "".join(pages[i] for i in sorted(list(top_k_indices)) if i < len(pages))
 
         logging.warn(f'embeddings are requested but missing for {path}')
         with self.lock:

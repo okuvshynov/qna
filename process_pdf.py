@@ -91,6 +91,7 @@ class PDFProcessor:
         self.embeds_store = EmbeddingStore()
 
     def process_pdf(self, path):
+        logging.info(f"processing {path}")
         doc = fitz.open(path)
         has_failures = False
 
