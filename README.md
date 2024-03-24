@@ -20,7 +20,11 @@ https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593
 
 To tag the bot, use one of the tags '@opus ', '@sonnet ', '@haiku ', '@opus+ ', '@sonnet+ ', '@haiku+ ' with a space after bot name. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
 
-Using context-aware bots on large books is probably a bad idea. I plan to add a 'selection-only' context qualifier, would be something like '@opus! '.
+Using context-aware bots on large books is probably a bad idea, so there are two more qualifiers: 
+- '*' would use the highlight + question. [prompt template](prompts/selection_v0)
+- '#' would find 3 relevant pages (using page-level embeddings lookup based on the question) + the current page + highlight. [prompt template](prompts/pages_v0)
+
+So, for example, if you are reading 1000 pages textbook, it might be a good idea to use "@sonnet# question here". We'll build embedding vector for the question, find 3 most relevant pages, add current page and ask sonnet model about it.  
 
 Another example on more recent 1bit llm paper:
 
@@ -52,7 +56,10 @@ the current process is:
 
 3. In the background, the service notices the update, loads the file and checks if there's a new, not answered query for the bot.
 
-4. If there is a new query, service constructs the message to the bot. If the bot tag was of the form '@botname ', only the question itself will be a part of the message. If the tag was of the form '@botname+ ', the entire document, the selection and the question would be included in the message. Here's prompt construction: https://github.com/okuvshynov/qna/blob/main/process_pdf.py#L48
+4. If there is a new query, service constructs the message to the bot. If the bot tag was of the form '@botname ', only the question itself will be a part of the message. If the tag was of the form '@botname+ ', the entire document, the selection and the question would be included in the message. Using context-aware bots on large books is probably a bad idea, so there are two more qualifiers: 
+- '*' would use the highlight + question. [prompt template](prompts/selection_v0)
+- '#' would find 3 relevant pages (using page-level embeddings lookup based on the question) + the current page + highlight. [prompt template](prompts/pages_v0). Embeddings per page are built on the fly + cached in ~/.cache/qna/.
+
 
 5. Once the reply arrives, if it is a success, service updates the same annotation in PDF file with the reply. Non-printable marker is inserted to the annotation as well, so that later service can identify that question was already answered. This sounds a little weird - there's a way to create a new annotation in PDF and make it an IRT = 'in reply to' the original one, but the rendering of that is pretty off in many PDF viewers (More details in [samples/annotations.md](samples/annotations.md)). As the intent here is not only to get the answer right now, but to keep the annotated version of the document and be able to read it in a potentially different environment later, keeping it in a single note is good.
 
