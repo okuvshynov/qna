@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 import anthropic
 import logging
+import openai
 
 @dataclass
 class AssistantConfig:
@@ -28,6 +29,10 @@ assistant_config = [
     AssistantConfig("@haiku# ", "claude-3-haiku-20240307", prompt="pages_v0", assistant='claude', needs_embeddings=True),
     AssistantConfig("@opus# ", "claude-3-opus-20240229", prompt="pages_v0", assistant='claude', needs_embeddings=True),
     AssistantConfig("@sonnet# ", "claude-3-sonnet-20240229", prompt="pages_v0", assistant='claude', needs_embeddings=True),
+    AssistantConfig("@gpt35 ", "gpt-3.5-turbo", prompt="question_v0", assistant='openai'),
+    AssistantConfig("@gpt35+ ", "gpt-3.5-turbo", prompt="fulltext_v0", assistant='openai'),
+    AssistantConfig("@gpt35* ", "gpt-3.5-turbo", prompt="selection_v0", assistant='openai'),
+    AssistantConfig("@gpt35# ", "gpt-3.5-turbo", prompt="pages_v0", assistant='openai', needs_embeddings=True),
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
@@ -47,7 +52,6 @@ def find_conf(message):
 ###############################################################################
 ### Prompt construction
 ###############################################################################
-
 def format_prompt(params, prompt_name):
     with open(os.path.join("prompts", prompt_name)) as f:
         prompt = f.read()
@@ -60,6 +64,7 @@ def format_prompt(params, prompt_name):
 ###############################################################################
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
+    # TODO do we want to add some sanity check here on message size?
     message = anthropic.Anthropic().messages.create(
         model=config.model,
         max_tokens=1024,
@@ -67,10 +72,30 @@ def ask_claude(config: AssistantConfig, question):
             {"role": "user", "content": question}
         ]
     )
+    # TODO: log error here
     if message.content is not None:
         return message.content[0].text
     return None
 
+###############################################################################
+### OpenAI
+###############################################################################
+def ask_openai(config: AssistantConfig, question):
+    logging.info(f'querying open ai model {config.model}')
+    client = openai.Client()
+    message = client.chat.completions.create(
+        model=config.model,
+        max_tokens=1024,
+        messages=[
+            {"role": "user", "content": question}
+        ]
+    )
+    if message.choices:
+        return message.choices[0].message.content
+    return None
+
+
 endpoints = {
     "claude": ask_claude,
+    "openai": ask_openai,
 }
