@@ -8,9 +8,11 @@ Sometimes getting answers might involve including context from the paper, and so
 
 This work was motivated by the following observation - while LLMs are still not that good at creating original and complicated content, they are pretty good at explaining something well known to humanity and not too well known to me. They are good tutors.
 
-Currently uses Claude API, but adding OpenAI and local llamas should not be hard.
+Currently uses Claude API/OpenAI API.
 
-Experimentation on local embedding store to provide some pages based on embeddings is [in progress](https://github.com/okuvshynov/qna/issues/1)
+In progress work:
+* [done]: local page-level embeddings store to provide some pages as context: https://github.com/okuvshynov/qna/issues/1
+* adding support for local llama: https://github.com/okuvshynov/qna/issues/2
 
 ## Examples
 
@@ -20,7 +22,7 @@ https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593
 
 To tag the bot, use one of the tags '@opus ', '@sonnet ', '@haiku ', '@opus+ ', '@sonnet+ ', '@haiku+ ' with a space after bot name. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
 
-Using context-aware bots on large books is probably a bad idea, so there are two more qualifiers: 
+Using full-context-aware bots on large books is probably a bad idea, so there are two more qualifiers: 
 - '*' would use the highlight + question. [prompt template](prompts/selection_v0)
 - '#' would find 3 relevant pages (using page-level embeddings lookup based on the question) + the current page + highlight. [prompt template](prompts/pages_v0)
 
