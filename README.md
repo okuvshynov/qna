@@ -129,5 +129,7 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 
 ## useful references
 
-https://github.com/anthropics/anthropic-cookbook/blob/main/misc/pdf_upload_summarization.ipynb
+* https://github.com/anthropics/anthropic-cookbook/blob/main/misc/pdf_upload_summarization.ipynb
+* https://github.com/mistralai/cookbook/blob/main/basic_RAG.ipynb
+
 
