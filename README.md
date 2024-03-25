@@ -11,7 +11,6 @@ This work was motivated by the following observation - while LLMs are still not 
 Currently uses Claude API/OpenAI API.
 
 In progress work:
-* [done]: local page-level embeddings store to provide some pages as context: https://github.com/okuvshynov/qna/issues/1
 * adding support for local llama: https://github.com/okuvshynov/qna/issues/2
 
 ## Examples
@@ -20,15 +19,22 @@ Here's an example asking Anthropic sonnet model some question while reading TVM 
 
 https://github.com/okuvshynov/qna/assets/661042/57befa86-8dec-4201-9389-5287b593ec2b
 
-To tag the bot, use one of the tags '@opus ', '@sonnet ', '@haiku ', '@opus+ ', '@sonnet+ ', '@haiku+ ' with a space after bot name. The ones with '+' sign would include the content of the entire paper, the selected part of the text and the question. The ones without '+' would only ask the question itself. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document itself.
+To tag the bot use the following tagging format:
 
-Using full-context-aware bots on large books is probably a bad idea, so there are two more qualifiers: 
+1. Name of the model. Anthropic models '@opus', '@sonnet', '@haiku' and OpenAI '@gpt35' are used.
+2. Optional 1 symbol qualifier
+- '+' would include the content of the entire paper, the selected part of the text (highlight) and the question [prompt template](prompts/fulltext_v0)
 - '*' would use the highlight + question. [prompt template](prompts/selection_v0)
 - '#' would find 3 relevant pages (using page-level embeddings lookup based on the question) + the current page + highlight. [prompt template](prompts/pages_v0)
+- No qualifier would include just the question. They are cheaper/faster and more suitable for generic questions (what does central limit theorem say?) rather than something about the document.
+3. Single space
 
-So, for example, if you are reading 1000 pages textbook, it might be a good idea to use "@sonnet# question here". We'll build embedding vector for the question, find 3 most relevant pages, add current page and ask sonnet model about it.  
+Examples:
+1. You are reading 1000 pages textbook, it might be a good idea to use "@sonnet# question here". We'll build embedding vector for the question, find 3 most relevant pages, add current page and ask sonnet model about it.
+2. You read a document and have a generic question, it might be a good idea to ask "@sonnet what's cache coherence protocol?". Only this short question would be included.
+3. You read a short paper and have a question about something introduced in that paper. Might be using entire paper can work "@sonnet what's this thing here?"
 
-Another example on more recent 1bit llm paper:
+Another illustration on more recent 1bit llm paper:
 
 https://github.com/okuvshynov/qna/assets/661042/a5f28a59-badd-43a0-aa81-925a282afeb5
 
@@ -37,12 +43,14 @@ https://github.com/okuvshynov/qna/assets/661042/a5f28a59-badd-43a0-aa81-925a282a
 ```
 pip install PyMuPDF
 pip install anthropic
+pip install openai
 pip install sentence-transformer # for embeddings
 ```
 
 Anthropic API key should be in environment variable ANTHROPIC_API_KEY. 
-All of it is tested on MacOS with default Preview PDF viewer. 
+OpenAI API key should be in environment variable OPENAI_API_KEY. 
 
+All of it was tested on MacOS with default Preview PDF viewer. 
 
 
 ## How it works
@@ -105,6 +113,7 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 [x] openAI integration
 [x] better prompt
 [ ] better installation: pip install ...
+[ ] make dependencies optional and turn off functionality.
 [x] extract prompts out of source. Make easier to configure, etc.
 [x] Some basic embedding store for large books. Just split by page, find best N pages and include in the prompt.
 	[ ] use selection to find relevant pages, not question only
@@ -115,6 +124,7 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 [ ] monitoring remote files? Best way to use on tablet/phone?
 [ ] local llama/mistral integration. It that ok if we need to wait for a minute?
 [ ] can we avoid refresh?
+[ ] add notification in osx once reply is arrived?
 ```
 
 ## useful references
