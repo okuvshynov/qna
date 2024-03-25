@@ -17,26 +17,27 @@ class EmbeddingStore:
         self.lock = threading.Lock()
         self.embeddings = {}
         self.enqueued = {}
+        self.cache_path = os.path.expanduser("~/.cache/qna")
+        
         self.loadall()
         threading.Thread(target=self.embedding_computation_loop, daemon=True).start()
 
     def save(self, path, checksum, embeddings):
-        cache_path = os.path.expanduser("~/.cache/qna")
+        
 
-        os.makedirs(cache_path, exist_ok=True)
+        os.makedirs(self.cache_path, exist_ok=True)
 
         base_name = hashlib.sha256(path.encode()).hexdigest()
-        base_path = os.path.join(cache_path, base_name)
+        base_path = os.path.join(self.cache_path, base_name)
         with open(f'{base_path}.json', 'w') as json_file:
             json.dump({"path": path, "checksum": checksum}, json_file)
         np.save(f'{base_path}.npy', embeddings)
 
     def loadall(self):
-        cache_path = os.path.expanduser("~/.cache/qna")
-        for file in os.listdir(cache_path):
+        for file in os.listdir(self.cache_path):
             try:
                 base_name, extension = os.path.splitext(file)
-                base_path = os.path.join(cache_path, base_name)
+                base_path = os.path.join(self.cache_path, base_name)
                 if extension == '.json':
                     embeddings = np.load(f'{base_path}.npy')
                     with open(f'{base_path}.json', 'r') as f:
@@ -45,7 +46,6 @@ class EmbeddingStore:
                         logging.info(f'loaded embeddings from cache for {d["path"]}')
             except:
                 logging.error(f'error processing {file} from embedding cache')
-
 
     def checksum(s):
         hash_object = hashlib.md5(s.encode())
@@ -77,7 +77,7 @@ class EmbeddingStore:
 
             self.q.task_done()
 
-    def get_topk_pages(self, path, pages, question, current_page_index, k):
+    def get_topk_pages(self, path, pages, question, selection, current_page_index, k):
         new_checksum = EmbeddingStore.checksum("".join(pages))
         embeds = None
 
@@ -89,7 +89,8 @@ class EmbeddingStore:
 
         if embeds is not None:
             # we got valid embeddings.
-            query_embedding = self.model.encode(question)
+            # TODO: better combination
+            query_embedding = self.model.encode(question + "\n" + selection)
             query_embedding = query_embedding / np.linalg.norm(query_embedding)
             similarities = np.dot(embeddings, query_embedding)
             top_k_indices = set(np.argsort(similarities)[::-1][:k])
@@ -103,8 +104,8 @@ class EmbeddingStore:
         logging.warn(f'embeddings are requested but missing for {path}')
         with self.lock:
             enqueued_checksum = self.enqueued.get(path)
-            # we never really remove values from self.enqueued
-            # it's more like 'computed or enqueued ever' rather than 'in queue now'
+            # we never remove values from self.enqueued
+            # it is 'computed or enqueued ever' rather than 'in queue now'
             if enqueued_checksum is None or enqueued_checksum != new_checksum:
                 self.enqueued[path] = new_checksum
 

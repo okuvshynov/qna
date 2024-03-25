@@ -11,17 +11,16 @@ class PDFProcessor:
     def process_pdf(self, path):
         logging.info(f"processing {path}")
         doc = fitz.open(path)
+        
         has_failures = False
+        changed = False
 
         # we use this as a marker that question was answered.
         # if someone modifies the annotation later and the marker is 
         # deleted, we will consider this a valid question and process it again
         delimiter = chr(1)
         
-        changed = False
-
         pages = [page.get_text() for page in doc]
-
         fulltext = "".join(pages)
 
         for idx, page in enumerate(doc):
@@ -48,15 +47,15 @@ class PDFProcessor:
                     selection += text
                 question = content[len(conf.prefix):]
 
-                chosen_pages = ""
+                context_pages = ""
                 if conf.needs_embeddings:
-                    chosen_pages = self.embeds_store.get_topk_pages(path, pages, question, idx, k=self.page_context_size)
+                    context_pages = self.embeds_store.get_topk_pages(path, pages, question, selection, idx, k=self.page_context_size)
                         
                 question = format_prompt([
                     ("{{fulltext}}", fulltext),
                     ("{{selection}}", selection),
                     ("{{question}}", question),
-                    ("{{pages}}", chosen_pages),
+                    ("{{pages}}", context_pages),
                 ], conf.prompt)
 
                 assistant = endpoints.get(conf.assistant)
