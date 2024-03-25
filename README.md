@@ -102,15 +102,17 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 	[x] selection + entire document
 [x] openAI integration
 [x] better prompt
-[ ] pip install ...
+[ ] better installation: pip install ...
 [x] extract prompts out of source. Make easier to configure, etc.
 [x] Some basic embedding store for large books. Just split by page, find best N pages and include in the prompt.
-[ ] instructions on how to use
+	[ ] use selection to find relevant pages, not question only
+[ ] better instructions on how to use
 [x] check other pdf viewers on desktops/iPad/phones. How do they handle annotations?
 [ ] configuration
 [ ] try on some old pdfs
 [ ] monitoring remote files? Best way to use on tablet/phone?
-[ ] local llama/mistral integration. What should be the 
+[ ] local llama/mistral integration. It that ok if we need to wait for a minute?
+[ ] can we avoid refresh?
 ```
 
 ## useful references
