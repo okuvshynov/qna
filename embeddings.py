@@ -121,4 +121,4 @@ class EmbeddingStore:
                 self.enqueued[path] = new_checksum
 
         self.q.put((path, pages))
-        return ""
+        return None

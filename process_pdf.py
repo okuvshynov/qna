@@ -50,6 +50,11 @@ class PDFProcessor:
                 context_pages = ""
                 if conf.needs_embeddings:
                     context_pages = self.embeds_store.get_topk_pages(path, pages, question, selection, idx, k=self.page_context_size)
+                    # let's fail and retry. It would make more sense to wait
+                    if context_pages is None:
+                        logging.error(f'embeddings were requested but not computed yet. Will retry.')
+                        has_failures = True
+                        continue
                         
                 question = format_prompt([
                     ("{{fulltext}}", fulltext),
