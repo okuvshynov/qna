@@ -113,10 +113,10 @@ The workaround for that was to print those odd PDF files to new PDF files using 
 [x] openAI integration
 [x] better prompt
 [ ] better installation: pip install ...
-[ ] make dependencies optional and turn off functionality.
+[x] make dependencies optional and turn off functionality.
 [x] extract prompts out of source. Make easier to configure, etc.
 [x] Some basic embedding store for large books. Just split by page, find best N pages and include in the prompt.
-	[ ] use selection to find relevant pages, not question only
+	[x] use selection to find relevant pages, not question only
 [ ] better instructions on how to use
 [x] check other pdf viewers on desktops/iPad/phones. How do they handle annotations?
 [ ] configuration
