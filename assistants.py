@@ -74,6 +74,7 @@ def ask_claude(config: AssistantConfig, question):
     )
     # TODO: log error here
     if message.content is not None:
+        logging.info(f'{config.model} query completed. in={message.usage.input_tokens} tokens, out={message.usage.output_tokens} tokens') 
         return message.content[0].text
     return None
 
