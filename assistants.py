@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import os
-import anthropic
+
 import logging
 import openai
 
@@ -94,8 +94,16 @@ def ask_openai(config: AssistantConfig, question):
         return message.choices[0].message.content
     return None
 
+endpoints = {}
 
-endpoints = {
-    "claude": ask_claude,
-    "openai": ask_openai,
-}
+try:
+    import anthropic
+    endpoints["claude"] = ask_claude
+except ImportError:
+    logging.warn(f'claude endpoints require anthropic module. Consider "pip install anthropic"')
+
+try:
+    import openai
+    endpoints["openai"] = ask_openai
+except ImportError:
+    logging.warn(f'openai endpoints require openai module. Consider "pip install openai"')

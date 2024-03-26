@@ -1,5 +1,4 @@
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import logging
 import hashlib
 import threading
@@ -7,11 +6,22 @@ import queue
 import os
 import json
 
-# huggingface tokenizers complain about threading i use
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+has_embeddings = False
+try:
+    from sentence_transformers import SentenceTransformer
+    # huggingface tokenizers complain about threading i use
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    has_embeddings = True
+except ImportError:
+    logging.warn(f'For page-level context lookup ("@bot# " tag format) sentence_transformers module is required. Consider "pip install sentence_transformers"')
+
+
+
 
 class EmbeddingStore:
     def __init__(self):
+        if not has_embeddings:
+            return
         self.model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
         self.q = queue.Queue()
         self.lock = threading.Lock()
@@ -23,8 +33,6 @@ class EmbeddingStore:
         threading.Thread(target=self.embedding_computation_loop, daemon=True).start()
 
     def save(self, path, checksum, embeddings):
-        
-
         os.makedirs(self.cache_path, exist_ok=True)
 
         base_name = hashlib.sha256(path.encode()).hexdigest()
@@ -78,6 +86,9 @@ class EmbeddingStore:
             self.q.task_done()
 
     def get_topk_pages(self, path, pages, question, selection, current_page_index, k):
+        if not has_embeddings:
+            logging.error(f'requested embeddings but sentence_transformers is not installed')
+            return ""
         new_checksum = EmbeddingStore.checksum("".join(pages))
         embeds = None
 
