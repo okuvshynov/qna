@@ -12,6 +12,7 @@ Currently uses Claude API/OpenAI API.
 
 In progress work:
 * adding support for local llama: https://github.com/okuvshynov/qna/issues/2
+* figuring out tablet use. https://github.com/okuvshynov/qna/issues/3
 
 ## Examples
 
