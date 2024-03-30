@@ -15,9 +15,6 @@ try:
 except ImportError:
     logging.warn(f'For page-level context lookup ("@bot# " tag format) sentence_transformers module is required. Consider "pip install sentence_transformers"')
 
-
-
-
 class EmbeddingStore:
     def __init__(self):
         if not has_embeddings:

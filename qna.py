@@ -66,6 +66,8 @@ class Assistant:
                         last_update_time = os.stat(file_path).st_mtime_ns
                         debounce_cutoff = int(1e9 * (time.time() - self.debounce_delay)) 
 
+                        # TODO: this is not correct in general, as time might, 
+                        # for example, go backwards during clock adjustment
                         if last_processed_time < last_update_time and not file_path in enqueued:
                             if last_update_time > debounce_cutoff:
                                 logging.info(f'{file_path} updated, waiting for debounce')
