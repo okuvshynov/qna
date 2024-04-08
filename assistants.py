@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 import os
-
 import logging
-import openai
+import time
+
+import fewlines.metrics as fm
 
 @dataclass
 class AssistantConfig:
@@ -65,6 +66,9 @@ def format_prompt(params, prompt_name):
 def ask_claude(config: AssistantConfig, question):
     logging.info(f'querying anthropic model {config.model}')
     # TODO do we want to add some sanity check here on message size?
+
+    # this will mix up both 'success latency' and ''
+    start = time.monotonic_ns()
     message = anthropic.Anthropic().messages.create(
         model=config.model,
         max_tokens=1024,
@@ -72,9 +76,16 @@ def ask_claude(config: AssistantConfig, question):
             {"role": "user", "content": question}
         ]
     )
+    latency = time.monotonic_ns() - start
+
     # TODO: log error here
     if message.content is not None:
         logging.info(f'{config.model} query completed. in={message.usage.input_tokens} tokens, out={message.usage.output_tokens} tokens') 
+        
+        fm.add(f'{config.model}_latency_ms', latency / 1000000.0)
+        fm.add(f'{config.model}_in_tokens', message.usage.input_tokens)
+        fm.add(f'{config.model}_out_tokens', message.usage.output_tokens)
+        
         return message.content[0].text
     return None
 

@@ -46,6 +46,7 @@ pip install PyMuPDF
 pip install anthropic
 pip install openai
 pip install sentence-transformer # for embeddings
+pip install fewlines             # for monitoring
 ```
 
 Anthropic API key should be in environment variable ANTHROPIC_API_KEY. 

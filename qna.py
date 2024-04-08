@@ -7,6 +7,8 @@ import sys
 
 from process_pdf import PDFProcessor
 
+import fewlines.dashboard as fd
+
 class Assistant:
     def __init__(self, working_dir) -> None:
         self.work_queue = queue.Queue()
@@ -43,6 +45,8 @@ class Assistant:
         total_enqueued = 0
         total_done = 0
 
+        last_printed = time.monotonic()
+
         while True:
             # non-blocking read from done queue
             while True:
@@ -77,6 +81,14 @@ class Assistant:
                             self.work_queue.put((file_path, last_update_time))
                             enqueued.add(file_path)
                             continue
+
+            now = time.monotonic()
+            if now > last_printed + self.stats_print_period:
+                for l in fd.histograms("*latency*"):
+                    logging.info(l)
+                for l in fd.histograms("*tokens*"):
+                    logging.info(l)
+                last_printed = now
 
             time.sleep(self.tick_period)
 
