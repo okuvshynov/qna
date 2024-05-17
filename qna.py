@@ -94,6 +94,7 @@ class Assistant:
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-    if len(sys.argv) != 2:
-        logging.error(f'usage: qna.py path/to/folder/to/monitor/')
+    if len(sys.argv) < 2:
+        logging.error(f'usage: qna.py path/to/folder/to/monitor/ [local_url]')
+
     Assistant(sys.argv[1]).start()

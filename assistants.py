@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 import logging
 import time
+import sys
 
 import fewlines.metrics as fm
 
@@ -34,6 +35,8 @@ assistant_config = [
     AssistantConfig("@gpt35+ ", "gpt-3.5-turbo", prompt="fulltext_v0", assistant='openai'),
     AssistantConfig("@gpt35* ", "gpt-3.5-turbo", prompt="selection_v0", assistant='openai'),
     AssistantConfig("@gpt35# ", "gpt-3.5-turbo", prompt="pages_v0", assistant='openai', needs_embeddings=True),
+    AssistantConfig("@duo ", model=None, prompt="question_v0", assistant='duo'),
+    AssistantConfig("@duo* ", model=None, prompt="selection_v0", assistant='duo'),
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
@@ -106,6 +109,33 @@ def ask_openai(config: AssistantConfig, question):
         return message.choices[0].message.content
     return None
 
+###############################################################################
+### Local based on llama duo
+###############################################################################
+def ask_duo(config: AssistantConfig, question):
+    logging.info(f'querying local model')
+
+    start = time.monotonic_ns()
+    headers = {'Content-Type': 'application/json'}
+
+    data = {
+        "system": "You are a helpful, respectful and honest assistant.",
+        "max_tokens": 2048,
+        "messages": [
+            {"role": "user", "content": question}
+        ]
+    }
+
+    url = f'{sys.argv[2]}/messages'
+
+    response = requests.post(url, json=data, headers=headers)
+
+    latency = time.monotonic_ns() - start
+    if response.status_code == 200:
+        return response.json()['content']['text']
+    print("Failed to get response:", response)
+    return None
+
 endpoints = {}
 
 try:
@@ -119,3 +149,11 @@ try:
     endpoints["openai"] = ask_openai
 except ImportError:
     logging.warn(f'openai endpoints require openai module. Consider "pip install openai"')
+
+try:
+    import requests
+    endpoints["duo"] = ask_duo
+except ImportError:
+    logging.warn(f'duo endpoint require requests module. Consider "pip install requests"')
+
+
