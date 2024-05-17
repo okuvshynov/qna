@@ -35,9 +35,6 @@ class PDFProcessor:
 
                 # find assistant config to use (if any)
                 conf = find_conf(content)
-
-                print(conf)
-
                 if conf is None or content.endswith(delimiter):
                     continue
 

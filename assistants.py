@@ -14,6 +14,7 @@ class AssistantConfig:
     assistant: str
     needs_embeddings: bool = False
 
+# TODO generate this
 assistant_config = [
     AssistantConfig("@ask ", "claude-3-haiku-20240307", prompt="question_v0", assistant='claude'),
     AssistantConfig("@haiku ", "claude-3-haiku-20240307", prompt="question_v0", assistant='claude'),
@@ -37,6 +38,8 @@ assistant_config = [
     AssistantConfig("@gpt35# ", "gpt-3.5-turbo", prompt="pages_v0", assistant='openai', needs_embeddings=True),
     AssistantConfig("@duo ", model=None, prompt="question_v0", assistant='duo'),
     AssistantConfig("@duo* ", model=None, prompt="selection_v0", assistant='duo'),
+    AssistantConfig("@duo+ ", model=None, prompt="fulltext_v0", assistant='duo'),
+    AssistantConfig("@duo# ", model=None, prompt="pages_v0", assistant='duo', needs_embeddings=True),
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
