@@ -8,11 +8,7 @@ Sometimes getting answers might involve including context from the paper, and so
 
 This work was motivated by the following observation - while LLMs are still not that good at creating original and complicated content, they are pretty good at explaining something well known to humanity and not too well known to me. They are good tutors.
 
-Currently uses Claude API/OpenAI API.
-
-In progress work:
-* adding support for local llama: https://github.com/okuvshynov/qna/issues/2
-* figuring out tablet use. https://github.com/okuvshynov/qna/issues/3
+Currently uses Claude API.
 
 ## Examples
 
@@ -44,13 +40,11 @@ https://github.com/okuvshynov/qna/assets/661042/a5f28a59-badd-43a0-aa81-925a282a
 ```
 pip install PyMuPDF
 pip install anthropic
-pip install openai
 pip install sentence-transformer # for embeddings
 pip install fewlines             # for monitoring
 ```
 
 Anthropic API key should be in environment variable ANTHROPIC_API_KEY. 
-OpenAI API key should be in environment variable OPENAI_API_KEY. 
 
 All of it was tested on MacOS with default Preview PDF viewer. 
 
