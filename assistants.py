@@ -15,10 +15,10 @@ class AssistantConfig:
 
 # TODO generate this
 assistant_config = [
-    AssistantConfig("@sonnet ", "claude-3-sonnet-20240229", prompt="question_v0", assistant='claude'),
-    AssistantConfig("@sonnet+ ", "claude-3-sonnet-20240229", prompt="fulltext_v0", assistant='claude'),
-    AssistantConfig("@sonnet* ", "claude-3-sonnet-20240229", prompt="selection_v0", assistant='claude'),
-    AssistantConfig("@sonnet# ", "claude-3-sonnet-20240229", prompt="pages_v0", assistant='claude', needs_embeddings=True),
+    AssistantConfig("@sonnet ", "claude-3-5-sonnet-20240620", prompt="question_v0", assistant='claude'),
+    AssistantConfig("@sonnet+ ", "claude-3-5-sonnet-20240620", prompt="fulltext_v0", assistant='claude'),
+    AssistantConfig("@sonnet* ", "claude-3-5-sonnet-20240620", prompt="selection_v0", assistant='claude'),
+    AssistantConfig("@sonnet# ", "claude-3-5-sonnet-20240620", prompt="pages_v0", assistant='claude', needs_embeddings=True),
 ]
 
 # do config sanity check, prefixes should not be prefixes of each other
